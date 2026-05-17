@@ -139,10 +139,13 @@ class SaleViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsEnterpriseOwnerOrAdmin, CanDeleteSale]
     
     def get_queryset(self):
+        # prefetch_related('quotas') es clave para que `Sale.collection_status`
+        # del serializer no dispare 3 queries por venta (N+1: con 400 ventas
+        # serían 1200 queries extras a Supabase).
         queryset = Sale.objects.select_related(
             'customer', 'vehicle', 'vehicle__brand', 'vehicle__model',
-            'branch', 'payment_form', 'seller'
-        ).all()
+            'branch', 'payment_form', 'seller',
+        ).prefetch_related('quotas').all()
 
         if self.request.user and self.request.user.enterprise:
             queryset = queryset.filter(enterprise=self.request.user.enterprise)

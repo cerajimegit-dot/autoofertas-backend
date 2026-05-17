@@ -44,7 +44,13 @@ class PaymentFormSerializer(serializers.ModelSerializer):
 
 
 class SaleListSerializer(serializers.ModelSerializer):
-    """Serializador de lista para Sale"""
+    """Serializador de lista para Sale.
+
+    `status` es el estado del CONTRATO (Reserva/Cerrada/Cancelada).
+    `collection_status` es el estado de COBRANZA calculado en línea
+    desde las cuotas + payment_form. Una venta puede estar Cerrada
+    pero `collection_status='overdue'` si tiene cuotas vencidas.
+    """
     branch_name = serializers.CharField(source='branch.name', read_only=True)
     customer_name = serializers.SerializerMethodField()
     vehicle_info = serializers.SerializerMethodField()
@@ -52,6 +58,10 @@ class SaleListSerializer(serializers.ModelSerializer):
     payment_form_name = serializers.CharField(source='payment_form.name', read_only=True)
     seller_name = serializers.CharField(source='seller.get_full_name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    # Estado de cobranza
+    collection_status = serializers.CharField(read_only=True)
+    collection_status_display = serializers.CharField(read_only=True)
+    collection_summary = serializers.JSONField(read_only=True)
 
     class Meta:
         model = Sale
@@ -59,7 +69,8 @@ class SaleListSerializer(serializers.ModelSerializer):
             'id', 'sale_number', 'sale_date', 'branch', 'branch_name',
             'customer', 'customer_name', 'vehicle', 'vehicle_info', 'vehicle_vin',
             'total_price', 'down_payment', 'payment_form_name', 'seller_name',
-            'status', 'status_display'
+            'status', 'status_display',
+            'collection_status', 'collection_status_display', 'collection_summary',
         )
         read_only_fields = fields
     

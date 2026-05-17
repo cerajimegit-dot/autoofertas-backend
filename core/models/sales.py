@@ -142,11 +142,21 @@ class PaymentForm(models.Model):
 
 
 class Sale(models.Model):
-    """Registro de venta"""
-    
+    """Registro de venta.
+
+    Nota sobre `status`:
+      - `completed` significa "venta firmada/cerrada", NO "cobrada totalmente".
+        Una venta a crédito puede estar `completed` con cuotas pendientes
+        durante 2-3 años. Para saber el estado real de cobranza usar
+        `collection_status` (calculado en línea desde las cuotas).
+      - `pending` significa "reserva sin cerrar" (pago de seña sin
+        contrato).
+      - `cancelled` significa "venta anulada" (vehículo vuelve a disponible).
+    """
+
     STATUS_CHOICES = (
-        ('pending', _('Pendiente')),
-        ('completed', _('Completada')),
+        ('pending',   _('Reserva')),
+        ('completed', _('Cerrada')),
         ('cancelled', _('Cancelada')),
     )
     
@@ -266,6 +276,89 @@ class Sale(models.Model):
 
     def __str__(self):
         return f"Venta #{self.sale_number} - {self.customer.full_name if self.customer else 'N/A'}"
+
+    # === Estado de cobranza calculado en línea ===
+    # Distinto del `status` (que es estado del contrato). Refleja qué tan
+    # cobrada está la venta hoy.
+    COLLECTION_STATUS_DISPLAY = {
+        'paid_full':    'Cobrada total',
+        'overdue':      'Con cuotas vencidas',
+        'collecting':   'Cobrando',
+        'unpaid':       'Sin cobros aún',
+        'no_plan':      'Sin plan de cuotas',
+        'cancelled':    'Cancelada',
+    }
+
+    def _quotas_cached(self):
+        """Devuelve la lista de cuotas iterando en Python — usa el cache de
+        prefetch_related('quotas') si lo hay, evita N+1 en listados.
+
+        IMPORTANTE: NO usar `.filter`, `.aggregate` o `.count` del related
+        manager — esos ignoran el prefetch y disparan SQL nuevo.
+        """
+        return list(self.quotas.all())
+
+    @property
+    def collection_status(self):
+        """Devuelve uno de: paid_full / overdue / collecting / unpaid /
+        no_plan / cancelled. Calculado en línea desde cuotas + payment_form."""
+        from datetime import date
+
+        if self.status == 'cancelled':
+            return 'cancelled'
+
+        quotas = self._quotas_cached()
+        n_total = len(quotas)
+
+        if n_total == 0:
+            # Sin cuotas. Si es contado y status=completed, la venta entró
+            # como cobrada total al firmar.
+            pf = (self.payment_form.name.upper() if self.payment_form else '')
+            if 'CONTADO' in pf and self.status == 'completed':
+                return 'paid_full'
+            return 'no_plan'
+
+        n_paid = sum(1 for q in quotas if q.status == 'paid')
+        if n_paid == n_total:
+            return 'paid_full'
+
+        # Cuotas vencidas: overdue legacy + pending vencida (cálculo dinámico)
+        today = date.today()
+        has_overdue = any(
+            q.status == 'overdue' or
+            (q.status == 'pending' and q.due_date and q.due_date < today)
+            for q in quotas
+        )
+        if has_overdue:
+            return 'overdue'
+
+        if n_paid > 0:
+            return 'collecting'
+        return 'unpaid'
+
+    @property
+    def collection_status_display(self):
+        return self.COLLECTION_STATUS_DISPLAY.get(self.collection_status, self.collection_status)
+
+    @property
+    def collection_summary(self):
+        """Dict con detalles para la UI: n_paid, n_total, balance_pending,
+        status, status_display. Itera el prefetch, sin queries extra."""
+        quotas = self._quotas_cached()
+        n_total = len(quotas)
+        n_paid = sum(1 for q in quotas if q.status == 'paid')
+        balance_pending = sum(
+            float(q.amount or 0)
+            for q in quotas
+            if q.status not in ('paid', 'cancelled')
+        )
+        return {
+            'n_paid': n_paid,
+            'n_total': n_total,
+            'balance_pending': balance_pending,
+            'status': self.collection_status,
+            'status_display': self.collection_status_display,
+        }
 
     # Mapeo de status de la venta → estado deseado del vehículo asociado.
     # `completed` deja el auto vendido, `pending` lo reserva, `cancelled` lo
