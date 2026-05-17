@@ -1,0 +1,226 @@
+{% extends 'ui/base.html' %}
+
+{% block title %}CRM - Registrar Nueva Venta{% endblock %}
+
+{% block content %}
+<div class="container-fluid mb-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-3">
+                <i class="fas fa-shopping-cart"></i> Registrar Nueva Venta
+            </h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'ui:customer_list_crm' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Atrás
+            </a>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle"></i> {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-edit"></i> Datos de la Venta</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Vehicle Selection -->
+                        <div class="mb-3">
+                            <label for="vehicle_id" class="form-label">Vehículo *</label>
+                            <select class="form-select" id="vehicle_id" name="vehicle_id" required>
+                                <option value="">-- Seleccionar Vehículo --</option>
+                                {% for vehicle in vehicles %}
+                                <option value="{{ vehicle.id }}" data-price="{{ vehicle.sale_price }}">
+                                    {{ vehicle.brand.name }} {{ vehicle.model.name }} ({{ vehicle.year }}) - ${{ vehicle.sale_price|floatformat:2 }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">Debe seleccionar un vehículo</div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="customer_id" class="form-label">Cliente *</label>
+                                <select class="form-select" id="customer_id" name="customer_id" required>
+                                    <option value="">-- Seleccionar Cliente --</option>
+                                    {% for customer in customers %}
+                                    <option value="{{ customer.id }}">
+                                        {{ customer.first_name }} {{ customer.last_name }} ({{ customer.email }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Debe seleccionar un cliente</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="sale_date" class="form-label">Fecha de Venta *</label>
+                                <input type="date" class="form-control" id="sale_date" name="sale_date" 
+                                       value="{% now 'Y-m-d' %}" required>
+                                <div class="invalid-feedback">La fecha de venta es requerida</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="total_price" class="form-label">Monto Total *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="total_price" name="total_price" 
+                                           step="0.01" placeholder="0.00" required>
+                                </div>
+                                <div class="invalid-feedback">El monto total es requerido</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="payment_form_id" class="form-label">Forma de Pago *</label>
+                                <select class="form-select" id="payment_form_id" name="payment_form_id" required>
+                                    <option value="">-- Seleccionar Forma de Pago --</option>
+                                    {% for form in payment_forms %}
+                                    <option value="{{ form.id }}">
+                                        {{ form.name }} ({{ form.months_to_pay }} meses)
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Debe seleccionar una forma de pago</div>
+                            </div>
+                        </div>
+
+                        {% if branches %}
+                        <div class="mb-3">
+                            <label for="branch_id" class="form-label">Sucursal</label>
+                            <select class="form-select" id="branch_id" name="branch_id">
+                                <option value="">-- Sin Sucursal --</option>
+                                {% for branch in branches %}
+                                <option value="{{ branch.id }}">{{ branch.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notas (Opcional)</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="Notas adicionales sobre la venta..."></textarea>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'ui:customer_list_crm' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check-circle"></i> Registrar Venta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Sidebar -->
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-calculator"></i> Resumen de Cuotas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="summary_payment_form" class="form-label">Forma de Pago:</label>
+                        <select class="form-select" id="summary_payment_form" disabled>
+                            <option>-- Selecciona una forma de pago --</option>
+                        </select>
+                    </div>
+
+                    <div class="alert alert-secondary">
+                        <small id="quota_summary">
+                            Selecciona un vehículo, cliente y forma de pago para ver el resumen de cuotas.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Instrucciones</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="small">
+                        <li>Selecciona un vehículo disponible</li>
+                        <li>Elige el cliente (o crea uno nuevo)</li>
+                        <li>Selecciona la forma de pago</li>
+                        <li>Confirma el precio y la fecha</li>
+                        <li>Haz clic en "Registrar Venta"</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Bootstrap form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.querySelectorAll('.needs-validation');
+        Array.prototype.slice.call(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+
+// Update total_price when vehicle is selected
+document.getElementById('vehicle_id').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    const price = option.getAttribute('data-price');
+    if(price) {
+        document.getElementById('total_price').value = price;
+    }
+});
+
+// Update summary when payment form is selected
+document.getElementById('payment_form_id').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const monthsText = selectedOption.text;
+    document.getElementById('summary_payment_form').value = monthsText;
+    
+    const totalPrice = parseFloat(document.getElementById('total_price').value) || 0;
+    const monthsMatch = monthsText.match(/(\d+)\s*mes/i);
+    const months = monthsMatch ? parseInt(monthsMatch[1]) : 1;
+    
+    const quotaAmount = (totalPrice / months).toFixed(2);
+    document.getElementById('quota_summary').innerHTML = `
+        <strong>Total:</strong> $${totalPrice.toFixed(2)}<br>
+        <strong>Cuotas:</strong> ${months} x $${quotaAmount}
+    `;
+});
+
+// Update quota summary when price changes
+document.getElementById('total_price').addEventListener('change', function() {
+    const event = new Event('change');
+    document.getElementById('payment_form_id').dispatchEvent(event);
+});
+</script>
+
+<style>
+    .card {
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: none;
+    }
+</style>
+{% endblock %}

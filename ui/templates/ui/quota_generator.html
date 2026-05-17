@@ -1,0 +1,381 @@
+{% extends 'ui/base.html' %}
+
+{% block title %}CRM - Generador de Cuotas{% endblock %}
+
+{% block content %}
+<div class="container-fluid mb-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-3">
+                <i class="fas fa-calculator"></i> Generador de Cuotas
+            </h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'ui:sales' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver a Ventas
+            </a>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle"></i> {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    {% if success %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i> {{ success }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Form Panel -->
+        <div class="col-md-5">
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-sliders-h"></i> Configurar Plan de Cuotas</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Sale Selection -->
+                    <div class="mb-3">
+                        <label for="sale_id" class="form-label">Venta *</label>
+                        <select class="form-select" id="sale_id" name="sale_id" required>
+                            <option value="">-- Seleccionar Venta --</option>
+                            {% for sale in sales_without_quotas %}
+                            <option value="{{ sale.id }}"
+                                    data-customer="{{ sale.customer.full_name }}"
+                                    data-customer-id="{{ sale.customer.id }}"
+                                    data-total="{{ sale.total_price }}"
+                                    data-vehicle="{{ sale.vehicle.brand.name }} {{ sale.vehicle.model.name }} {{ sale.vehicle.year }}"
+                                    data-sale-number="{{ sale.sale_number }}"
+                                    {% if preselect_sale_id == sale.id %}selected{% endif %}>
+                                {{ sale.sale_number }} - {{ sale.customer.full_name }} - {{ sale.vehicle.brand.name }} {{ sale.vehicle.model.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Solo se muestran ventas sin cuotas cargadas</small>
+                    </div>
+
+                    <!-- Sale Info Card (hidden until selection) -->
+                    <div id="sale-info" class="alert alert-info d-none mb-3">
+                        <strong>Venta:</strong> <span id="info-sale-number"></span><br>
+                        <strong>Cliente:</strong> <span id="info-customer"></span><br>
+                        <strong>Vehiculo:</strong> <span id="info-vehicle"></span><br>
+                        <strong>Monto Total:</strong> Gs. <span id="info-total"></span>
+                    </div>
+
+                    <!-- Quota Parameters -->
+                    <div class="mb-3">
+                        <label for="first_due_date" class="form-label">Fecha Primer Vencimiento *</label>
+                        <input type="date" class="form-control" id="first_due_date" required>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="num_quotas" class="form-label">Cantidad de Cuotas *</label>
+                            <input type="number" class="form-control" id="num_quotas"
+                                   min="1" max="120" placeholder="Ej: 24" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="quota_amount" class="form-label">Importe por Cuota *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Gs.</span>
+                                <input type="number" class="form-control" id="quota_amount"
+                                       min="0" step="1" placeholder="Ej: 2000000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="plan_name" class="form-label">Nombre del Plan (Opcional)</label>
+                        <input type="text" class="form-control" id="plan_name"
+                               placeholder="Ej: Financiación 24 cuotas">
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-info text-white" id="btn-generate" disabled>
+                            <i class="fas fa-table"></i> Generar Detalle de Cuotas
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Instrucciones</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li>Selecciona una venta sin cuotas</li>
+                        <li>Ingresa la fecha del primer vencimiento</li>
+                        <li>Indica cantidad de cuotas e importe</li>
+                        <li>Haz clic en "Generar Detalle"</li>
+                        <li>Modifica los importes individuales si es necesario</li>
+                        <li>Confirma y guarda las cuotas</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quota Detail Table -->
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list-ol"></i> Detalle de Cuotas</h5>
+                    <span class="badge bg-light text-dark" id="quota-count">0 cuotas</span>
+                </div>
+                <div class="card-body">
+                    <!-- Empty state -->
+                    <div id="empty-state" class="text-center text-muted py-5">
+                        <i class="fas fa-file-invoice-dollar fa-3x mb-3"></i>
+                        <p>Configura los parametros y genera el detalle de cuotas</p>
+                    </div>
+
+                    <!-- Quota table (hidden initially) -->
+                    <div id="quota-table-container" class="d-none">
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-sm table-hover" id="quota-table">
+                                <thead class="sticky-top">
+                                    <tr>
+                                        <th style="width: 60px;">#</th>
+                                        <th>Vencimiento</th>
+                                        <th style="width: 180px;">Importe (Gs.)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="quota-tbody">
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Summary -->
+                        <div class="border-top pt-3 mt-2">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Total Cuotas:</strong> <span id="summary-total" class="text-primary fw-bold">0</span>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <strong>Diferencia con Venta:</strong>
+                                    <span id="summary-diff" class="fw-bold">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit -->
+                        <form method="post" id="quota-form" class="mt-3">
+                            {% csrf_token %}
+                            <input type="hidden" name="sale_id" id="form-sale-id">
+                            <input type="hidden" name="plan_name" id="form-plan-name">
+                            <input type="hidden" name="quota_data" id="form-quota-data">
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="button" class="btn btn-outline-secondary" id="btn-clear">
+                                    <i class="fas fa-eraser"></i> Limpiar
+                                </button>
+                                <button type="submit" class="btn btn-success" id="btn-save" disabled>
+                                    <i class="fas fa-save"></i> Guardar Cuotas
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    const saleSelect = document.getElementById('sale_id');
+    const firstDueDate = document.getElementById('first_due_date');
+    const numQuotas = document.getElementById('num_quotas');
+    const quotaAmount = document.getElementById('quota_amount');
+    const planName = document.getElementById('plan_name');
+    const btnGenerate = document.getElementById('btn-generate');
+    const btnSave = document.getElementById('btn-save');
+    const btnClear = document.getElementById('btn-clear');
+    const emptyState = document.getElementById('empty-state');
+    const tableContainer = document.getElementById('quota-table-container');
+    const quotaTbody = document.getElementById('quota-tbody');
+    const quotaCount = document.getElementById('quota-count');
+    const summaryTotal = document.getElementById('summary-total');
+    const summaryDiff = document.getElementById('summary-diff');
+
+    let saleTotal = 0;
+
+    // Format number with dots as thousands separator (Paraguayan style)
+    function formatGs(num) {
+        return Math.round(num).toLocaleString('es-PY');
+    }
+
+    // Parse formatted number back to integer
+    function parseGs(str) {
+        return parseInt(str.replace(/\./g, '').replace(/,/g, ''), 10) || 0;
+    }
+
+    // Show sale info when selected
+    saleSelect.addEventListener('change', function() {
+        const opt = this.options[this.selectedIndex];
+        const info = document.getElementById('sale-info');
+
+        if (this.value) {
+            saleTotal = parseFloat(opt.dataset.total) || 0;
+            document.getElementById('info-sale-number').textContent = opt.dataset.saleNumber;
+            document.getElementById('info-customer').textContent = opt.dataset.customer;
+            document.getElementById('info-vehicle').textContent = opt.dataset.vehicle;
+            document.getElementById('info-total').textContent = formatGs(saleTotal);
+            info.classList.remove('d-none');
+        } else {
+            saleTotal = 0;
+            info.classList.add('d-none');
+        }
+        checkCanGenerate();
+    });
+
+    // Enable/disable generate button
+    function checkCanGenerate() {
+        const valid = saleSelect.value && firstDueDate.value &&
+                      numQuotas.value && parseInt(numQuotas.value) > 0 &&
+                      quotaAmount.value && parseFloat(quotaAmount.value) > 0;
+        btnGenerate.disabled = !valid;
+    }
+
+    [firstDueDate, numQuotas, quotaAmount].forEach(el => {
+        el.addEventListener('input', checkCanGenerate);
+        el.addEventListener('change', checkCanGenerate);
+    });
+
+    // Generate quota detail table
+    btnGenerate.addEventListener('click', function() {
+        const n = parseInt(numQuotas.value);
+        const amount = parseFloat(quotaAmount.value);
+        const startDate = new Date(firstDueDate.value + 'T12:00:00');
+
+        if (!n || !amount || isNaN(startDate.getTime())) return;
+
+        quotaTbody.innerHTML = '';
+
+        for (let i = 0; i < n; i++) {
+            const dueDate = new Date(startDate);
+            dueDate.setMonth(dueDate.getMonth() + i);
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="align-middle fw-bold">${i + 1}/${n}</td>
+                <td class="align-middle">${formatDate(dueDate)}</td>
+                <td>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text">Gs.</span>
+                        <input type="number" class="form-control quota-amount-input"
+                               value="${Math.round(amount)}" min="0" step="1"
+                               data-index="${i}" data-date="${dueDate.toISOString().split('T')[0]}">
+                    </div>
+                </td>
+            `;
+            quotaTbody.appendChild(tr);
+        }
+
+        // Show table, hide empty state
+        emptyState.classList.add('d-none');
+        tableContainer.classList.remove('d-none');
+        quotaCount.textContent = n + ' cuotas';
+        btnSave.disabled = false;
+
+        updateSummary();
+        attachAmountListeners();
+    });
+
+    function formatDate(date) {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+
+    function attachAmountListeners() {
+        document.querySelectorAll('.quota-amount-input').forEach(input => {
+            input.addEventListener('input', updateSummary);
+        });
+    }
+
+    function updateSummary() {
+        let total = 0;
+        document.querySelectorAll('.quota-amount-input').forEach(input => {
+            total += parseFloat(input.value) || 0;
+        });
+        summaryTotal.textContent = 'Gs. ' + formatGs(total);
+
+        const diff = total - saleTotal;
+        if (Math.abs(diff) < 1) {
+            summaryDiff.textContent = 'Gs. 0 (exacto)';
+            summaryDiff.className = 'fw-bold text-success';
+        } else if (diff > 0) {
+            summaryDiff.textContent = '+ Gs. ' + formatGs(diff);
+            summaryDiff.className = 'fw-bold text-warning';
+        } else {
+            summaryDiff.textContent = '- Gs. ' + formatGs(Math.abs(diff));
+            summaryDiff.className = 'fw-bold text-danger';
+        }
+    }
+
+    // Clear
+    btnClear.addEventListener('click', function() {
+        quotaTbody.innerHTML = '';
+        emptyState.classList.remove('d-none');
+        tableContainer.classList.add('d-none');
+        btnSave.disabled = true;
+        quotaCount.textContent = '0 cuotas';
+    });
+
+    // Submit
+    document.getElementById('quota-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const inputs = document.querySelectorAll('.quota-amount-input');
+        if (inputs.length === 0) return;
+
+        const quotas = [];
+        inputs.forEach(input => {
+            quotas.push({
+                quota_number: parseInt(input.dataset.index) + 1,
+                due_date: input.dataset.date,
+                amount: parseFloat(input.value) || 0
+            });
+        });
+
+        document.getElementById('form-sale-id').value = saleSelect.value;
+        document.getElementById('form-plan-name').value = planName.value;
+        document.getElementById('form-quota-data').value = JSON.stringify(quotas);
+
+        this.submit();
+    });
+
+    // Trigger preselection if exists
+    if (saleSelect.value) {
+        saleSelect.dispatchEvent(new Event('change'));
+    }
+})();
+</script>
+
+<style>
+    .quota-amount-input:focus {
+        border-color: #27ae60;
+        box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
+    }
+    .table thead th {
+        font-size: 0.85rem;
+    }
+    #quota-table-container .table-responsive::-webkit-scrollbar {
+        width: 6px;
+    }
+    #quota-table-container .table-responsive::-webkit-scrollbar-thumb {
+        background: #bdc3c7;
+        border-radius: 3px;
+    }
+</style>
+{% endblock %}

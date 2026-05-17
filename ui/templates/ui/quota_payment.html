@@ -1,0 +1,245 @@
+{% extends 'ui/base.html' %}
+
+{% block title %}CRM - Registrar Pago de Cuota{% endblock %}
+
+{% block content %}
+<div class="container-fluid mb-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-3">
+                <i class="fas fa-money-bill-wave"></i> Registrar Pago de Cuota
+            </h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'ui:customer_crm' quotum.customer.id %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Atrás
+            </a>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle"></i> {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Quota Information -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-receipt"></i> Información de la Cuota</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Cuota #:</th>
+                                    <td><strong>{{ quotum.quota_number }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Cliente:</th>
+                                    <td>{{ quotum.customer.first_name }} {{ quotum.customer.last_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Email:</th>
+                                    <td><a href="mailto:{{ quotum.customer.email }}">{{ quotum.customer.email }}</a></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Vehículo:</th>
+                                    <td>{{ quotum.sale.vehicle.brand.name }} {{ quotum.sale.vehicle.model.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Año:</th>
+                                    <td>{{ quotum.sale.vehicle.year }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Venta #:</th>
+                                    <td><a href="{% url 'ui:sale_detail' quotum.sale.id %}">#{{ quotum.sale.id }}</a></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Details -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-credit-card"></i> Detalles del Pago</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="alert alert-warning">
+                                <small><strong>Monto a cobrar:</strong></small><br>
+                                <h4 class="mb-0 text-danger">${{ quotum.amount|floatformat:2 }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-info">
+                                <small><strong>Vencimiento:</strong></small><br>
+                                <h5 class="mb-0">{{ quotum.due_date|date:"d/m/Y" }}</h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="payment_date" class="form-label">Fecha de Pago *</label>
+                            <input type="date" class="form-control" id="payment_date" name="payment_date" 
+                                   value="{% now 'Y-m-d' %}" required>
+                            <div class="invalid-feedback">La fecha de pago es requerida</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Observaciones (Opcional)</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="Método de pago, referencia de banco, etc..."></textarea>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'ui:customer_crm' quotum.customer.id %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check-circle"></i> Confirmar Pago
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Receipt Preview -->
+        <div class="col-md-4">
+            <!-- Receipt -->
+            <div class="card" style="border: 2px dashed #ccc;">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0 text-center">
+                        <i class="fas fa-print"></i> RECIBO DE PAGO (Previsualización)
+                    </h5>
+                </div>
+                <div class="card-body" style="background: white; font-family: monospace; font-size: 0.9rem;">
+                    <div class="text-center mb-3">
+                        <strong>COMPROBANTE DE PAGO</strong><br>
+                        <small>Playas de Autos</small>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-2" style="font-size: 0.8rem;">
+                        <strong>Cliente:</strong><br>
+                        {{ quotum.customer.first_name }} {{ quotum.customer.last_name }}<br>
+                        {{ quotum.customer.email }}<br>
+                        {{ quotum.customer.phone }}
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-2" style="font-size: 0.8rem;">
+                        <table class="table table-sm" style="border-collapse: collapse;">
+                            <tr>
+                                <td><strong>Cuota #:</strong></td>
+                                <td class="text-end">{{ quotum.quota_number }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Vehículo:</strong></td>
+                                <td class="text-end">{{ quotum.sale.vehicle.model.name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Monto:</strong></td>
+                                <td class="text-end"><strong>${{ quotum.amount|floatformat:2 }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Fecha:</strong></td>
+                                <td class="text-end"><span id="receipt_date">{% now 'd/m/Y' %}</span></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <hr>
+
+                    <div class="text-center" style="font-size: 0.75rem;">
+                        <p class="mb-0">¡Gracias por su pago!</p>
+                        <p class="mb-0">Conserve este comprobante</p>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="window.print()">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Methods Info -->
+            <div class="card mt-3">
+                <div class="card-header bg-success text-white small">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información</h5>
+                </div>
+                <div class="card-body small">
+                    <p><strong>Después de confirmar:</strong></p>
+                    <ul class="mb-0">
+                        <li>La cuota se marcará como pagada</li>
+                        <li>Se generará un comprobante</li>
+                        <li>El cliente recibirá notificación</li>
+                        <li>Se actualizará el historial</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Bootstrap form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.querySelectorAll('.needs-validation');
+        Array.prototype.slice.call(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+
+// Update receipt date when payment date changes
+document.getElementById('payment_date').addEventListener('change', function() {
+    const date = new Date(this.value);
+    const formatted = ('0' + date.getDate()).slice(-2) + '/' + 
+                      ('0' + (date.getMonth() + 1)).slice(-2) + '/' + 
+                      date.getFullYear();
+    document.getElementById('receipt_date').textContent = formatted;
+});
+</script>
+
+<style>
+    .card {
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: none;
+    }
+    @media print {
+        body {
+            background: white;
+        }
+        .btn, .btn-group, .navbar, .card-header {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}

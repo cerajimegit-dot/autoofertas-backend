@@ -1,0 +1,527 @@
+{
+  "cliente": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "pk": true,
+        "not_null": true
+      },
+      {
+        "name": "nombre",
+        "type": "VARCHAR(100)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "apellido",
+        "type": "VARCHAR(100)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "direccion",
+        "type": "VARCHAR(200)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "fecha_nacimiento",
+        "type": "DATE",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "numero_documento",
+        "type": "VARCHAR(50)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "telefono",
+        "type": "VARCHAR(20)",
+        "pk": false,
+        "not_null": false
+      }
+    ],
+    "row_count": 162
+  },
+  "marca": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "pk": true,
+        "not_null": true
+      },
+      {
+        "name": "nombre",
+        "type": "VARCHAR(100)",
+        "pk": false,
+        "not_null": true
+      }
+    ],
+    "row_count": 4
+  },
+  "modelo": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "pk": true,
+        "not_null": true
+      },
+      {
+        "name": "nombre",
+        "type": "VARCHAR(100)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "marca_id",
+        "type": "INTEGER",
+        "pk": false,
+        "not_null": true
+      }
+    ],
+    "row_count": 38
+  },
+  "producto": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "pk": true,
+        "not_null": true
+      },
+      {
+        "name": "numero_chasis",
+        "type": "VARCHAR(100)",
+        "pk": false,
+        "not_null": false
+      },
+      {
+        "name": "marca_id",
+        "type": "INTEGER",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "modelo_id",
+        "type": "INTEGER",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "año_fabricacion",
+        "type": "INTEGER",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "color",
+        "type": "VARCHAR(50)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "precio_venta",
+        "type": "FLOAT",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "ubicacion",
+        "type": "varchar(50)",
+        "pk": false,
+        "not_null": false
+      }
+    ],
+    "row_count": 238
+  },
+  "gasto": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "pk": true,
+        "not_null": true
+      },
+      {
+        "name": "descripcion",
+        "type": "VARCHAR(200)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "monto",
+        "type": "FLOAT",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "moneda",
+        "type": "VARCHAR(10)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "tasa_cambio",
+        "type": "FLOAT",
+        "pk": false,
+        "not_null": false
+      },
+      {
+        "name": "producto_id",
+        "type": "INTEGER",
+        "pk": false,
+        "not_null": true
+      }
+    ],
+    "row_count": 152
+  },
+  "cuota": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "pk": true,
+        "not_null": true
+      },
+      {
+        "name": "venta_id",
+        "type": "INTEGER",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "importe",
+        "type": "FLOAT",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "fecha_vencimiento",
+        "type": "DATETIME",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "pagado",
+        "type": "BOOLEAN",
+        "pk": false,
+        "not_null": false
+      },
+      {
+        "name": "fecha_pago",
+        "type": "DATETIME",
+        "pk": false,
+        "not_null": false
+      },
+      {
+        "name": "tipo_pago",
+        "type": "VARCHAR(50)",
+        "pk": false,
+        "not_null": false
+      }
+    ],
+    "row_count": 1281
+  },
+  "alembic_version": {
+    "columns": [
+      {
+        "name": "version_num",
+        "type": "VARCHAR(32)",
+        "pk": true,
+        "not_null": true
+      }
+    ],
+    "row_count": 1
+  },
+  "pago_cuota": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "pk": true,
+        "not_null": true
+      },
+      {
+        "name": "cuota_id",
+        "type": "INTEGER",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "monto_pago",
+        "type": "FLOAT",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "fecha_pago",
+        "type": "DATE",
+        "pk": false,
+        "not_null": true
+      }
+    ],
+    "row_count": 1
+  },
+  "seguimiento_cobranza": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "pk": true,
+        "not_null": true
+      },
+      {
+        "name": "cliente_id",
+        "type": "INTEGER",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "fecha",
+        "type": "DATETIME",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "detalle",
+        "type": "VARCHAR(255)",
+        "pk": false,
+        "not_null": true
+      }
+    ],
+    "row_count": 2
+  },
+  "seguimiento_venta": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "pk": true,
+        "not_null": true
+      },
+      {
+        "name": "cliente_id",
+        "type": "INTEGER",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "fecha",
+        "type": "DATETIME",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "detalle",
+        "type": "VARCHAR(255)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "fecha_proximo_contacto",
+        "type": "DATE",
+        "pk": false,
+        "not_null": false
+      }
+    ],
+    "row_count": 8
+  },
+  "concepto": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "pk": true,
+        "not_null": true
+      },
+      {
+        "name": "nombre",
+        "type": "VARCHAR(100)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "tipo",
+        "type": "VARCHAR(10)",
+        "pk": false,
+        "not_null": true
+      }
+    ],
+    "row_count": 6
+  },
+  "venta": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "pk": true,
+        "not_null": true
+      },
+      {
+        "name": "codigo_interno",
+        "type": "VARCHAR(10)",
+        "pk": false,
+        "not_null": false
+      },
+      {
+        "name": "cliente_id",
+        "type": "INTEGER",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "producto_id",
+        "type": "INTEGER",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "fecha",
+        "type": "DATETIME",
+        "pk": false,
+        "not_null": false
+      },
+      {
+        "name": "tipo_pago",
+        "type": "VARCHAR(20)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "entrega_inicial",
+        "type": "FLOAT",
+        "pk": false,
+        "not_null": false
+      },
+      {
+        "name": "total",
+        "type": "FLOAT",
+        "pk": false,
+        "not_null": true
+      }
+    ],
+    "row_count": 140
+  },
+  "user": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "pk": true,
+        "not_null": true
+      },
+      {
+        "name": "username",
+        "type": "VARCHAR(150)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "password",
+        "type": "VARCHAR(150)",
+        "pk": false,
+        "not_null": true
+      }
+    ],
+    "row_count": 3
+  },
+  "egreso": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "pk": true,
+        "not_null": true
+      },
+      {
+        "name": "concepto_id",
+        "type": "INTEGER",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "descripcion",
+        "type": "VARCHAR(255)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "fecha",
+        "type": "DATE",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "importe",
+        "type": "FLOAT",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "moneda",
+        "type": "VARCHAR(10)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "tasa_cambio",
+        "type": "FLOAT",
+        "pk": false,
+        "not_null": false
+      }
+    ],
+    "row_count": 2
+  },
+  "ingreso": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "pk": true,
+        "not_null": true
+      },
+      {
+        "name": "concepto_id",
+        "type": "INTEGER",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "descripcion",
+        "type": "VARCHAR(255)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "fecha",
+        "type": "DATE",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "importe",
+        "type": "FLOAT",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "moneda",
+        "type": "VARCHAR(10)",
+        "pk": false,
+        "not_null": true
+      },
+      {
+        "name": "tasa_cambio",
+        "type": "FLOAT",
+        "pk": false,
+        "not_null": false
+      }
+    ],
+    "row_count": 12
+  }
+}

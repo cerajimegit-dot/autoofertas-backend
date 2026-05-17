@@ -1,0 +1,23 @@
+Empresa: AUTO OFERTAS (RUC: 12345678)
+Clientes: 218
+Vehículos: 344
+Ventas: 161
+Cuotas: 1372
+
+✓ Usuario 'admin' ya existe
+✓ Usuario 'manager' ya existe
+✓ Usuario 'vendor' creado
+
+============================================================
+USUARIOS DISPONIBLES:
+============================================================
+1. admin / admin123456 (Administrador - Acceso Total)
+2. manager / manager123456 (Gerente - Acceso Supervisión)
+3. vendor / vendor123456 (Vendedor - Acceso Limitado)
+
+EMPRESA: AUTO OFERTAS
+
+PARA INICIAR SESIÓN:
+Ve a: http://127.0.0.1:8001/login/
+Usa cualquiera de los usuarios arriba
+============================================================

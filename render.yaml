@@ -1,0 +1,62 @@
+# Render Blueprint para el backend de AUTO OFERTAS
+# Importar este blueprint desde Render: New > Blueprint > seleccionar este repo
+services:
+  - type: web
+    name: playa-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate
+    startCommand: gunicorn playas_autos.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 60
+    healthCheckPath: /api/users/health/
+    envVars:
+      # === Esenciales ===
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true        # Render genera uno random la primera vez
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: PYTHON_VERSION
+        value: 3.12.5
+
+      # === Base de datos (Supabase) ===
+      - key: DB_ENGINE
+        value: postgres
+      - key: DATABASE_URL
+        sync: false                # pegar manualmente desde Supabase > Settings > Database > Connection pooling (puerto 6543)
+
+      # === CORS y hosts (sync:false = lo cargás en el dashboard) ===
+      - key: ALLOWED_HOSTS
+        sync: false                # ej: playa-backend.onrender.com,autoofertas.com.py
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false                # ej: https://playa-frontend.onrender.com
+
+      # === HTTPS / HSTS ===
+      - key: SECURE_SSL_REDIRECT
+        value: "True"
+      - key: SECURE_HSTS_SECONDS
+        value: "3600"              # subir a 31536000 (1 año) tras 1 semana estable
+
+      # === Rate limits (ajustables si hay abuso o si bloquean al dueño) ===
+      - key: THROTTLE_ANON
+        value: 60/min
+      - key: THROTTLE_USER
+        value: 600/min
+      - key: THROTTLE_LOGIN
+        value: 5/min
+      - key: THROTTLE_REGISTER
+        value: 3/min
+      - key: THROTTLE_WHATSAPP
+        value: 30/min
+
+      # === Cache (opcional pero recomendado) ===
+      # Si agregás un Redis a Render, pegá su URL acá. Sin Redis el throttling
+      # funciona per-worker en lugar de global (4 workers = 4× el rate real).
+      # - key: REDIS_URL
+      #   sync: false

@@ -1,0 +1,370 @@
+{% extends 'ui/base.html' %}
+
+{% block title %}Venta {{ sale.sale_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mb-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-1">
+                <i class="fas fa-file-invoice-dollar"></i> Venta {{ sale.sale_number }}
+                {% if is_ods_import %}
+                <span class="badge bg-info fs-6 align-middle"><i class="fas fa-file-import"></i> Importado ODS</span>
+                {% endif %}
+            </h1>
+            <small class="text-muted">Registrada el {{ sale.sale_date|date:"d/m/Y" }}</small>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'ui:sales' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver a Ventas
+            </a>
+            {% if not sale.quotas.count %}
+            <a href="{% url 'ui:quota_generator' %}?sale_id={{ sale.id }}" class="btn btn-success">
+                <i class="fas fa-calculator"></i> Generar Cuotas
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if is_ods_import %}
+    <div class="alert alert-info border-info mb-3">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <i class="fas fa-file-import fa-lg me-2"></i>
+                <strong>Venta importada desde planilla ODS</strong> — Verificar que los datos coincidan con el Excel original.
+            </div>
+            <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                <i class="fas fa-trash"></i> Eliminar si no corresponde
+            </button>
+        </div>
+        <div class="d-flex align-items-center justify-content-between mt-2 pt-2 border-top border-info border-opacity-25">
+            <div>
+                {% if prev_ods %}
+                <a href="{% url 'ui:sale_detail' sale_id=prev_ods.0 %}" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-arrow-left"></i> {{ prev_ods.1 }}
+                </a>
+                {% endif %}
+            </div>
+            <span class="text-muted small">{{ ods_position }} de {{ ods_count }} importadas</span>
+            <div>
+                {% if next_ods %}
+                <a href="{% url 'ui:sale_detail' sale_id=next_ods.0 %}" class="btn btn-sm btn-outline-info">
+                    {{ next_ods.1 }} <i class="fas fa-arrow-right"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Sale Info Cards -->
+    <div class="row mb-4">
+        <!-- Client Info -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-user"></i> Cliente</h6>
+                </div>
+                <div class="card-body">
+                    {% if sale.customer %}
+                        {% if sale.customer.is_generic %}
+                        <div class="alert alert-warning py-2 mb-2">
+                            <i class="fas fa-exclamation-triangle"></i> <strong>Cliente generico</strong> - Esta venta necesita un cliente real asignado.
+                        </div>
+                        {% endif %}
+                        <p class="mb-1"><strong>{{ sale.customer.full_name }}</strong></p>
+                        <p class="mb-1 text-muted small">{{ sale.customer.document_type|upper }}: {{ sale.customer.document_number }}</p>
+                        {% if sale.customer.phone %}
+                        <p class="mb-1 small"><i class="fas fa-phone"></i> <a href="tel:{{ sale.customer.phone }}">{{ sale.customer.phone }}</a></p>
+                        {% endif %}
+                        {% if sale.customer.email %}
+                        <p class="mb-1 small"><i class="fas fa-envelope"></i> {{ sale.customer.email }}</p>
+                        {% endif %}
+                        <div class="mt-2">
+                            <a href="{% url 'ui:customer_crm' customer_id=sale.customer.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i> Ver Cliente
+                            </a>
+                            {% if sale.customer.is_generic %}
+                            <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#assignCustomerModal">
+                                <i class="fas fa-user-edit"></i> Asignar Cliente
+                            </button>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-danger py-2 mb-2">
+                            <i class="fas fa-exclamation-circle"></i> Sin cliente asignado
+                        </div>
+                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#assignCustomerModal">
+                            <i class="fas fa-user-plus"></i> Asignar Cliente
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Vehicle Info -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-car"></i> Vehiculo</h6>
+                </div>
+                <div class="card-body">
+                    {% if sale.vehicle %}
+                    <p class="mb-1"><strong>{{ sale.vehicle.brand.name }} {{ sale.vehicle.model.name }}</strong></p>
+                    <p class="mb-1 text-muted small">Año: {{ sale.vehicle.year }}</p>
+                    <p class="mb-1 text-muted small">Chasis: {{ sale.vehicle.vin }}</p>
+                    {% if sale.vehicle.color %}
+                    <p class="mb-1 text-muted small">Color: {{ sale.vehicle.color }}</p>
+                    {% endif %}
+                    <span class="badge bg-dark">{{ sale.vehicle.state|title }}</span>
+                    {% else %}
+                    <p class="text-muted">Sin vehiculo asignado</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sale Summary -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-money-bill-wave"></i> Resumen</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted">Precio Total:</td>
+                            <td class="text-end fw-bold">Gs. {{ sale.total_price|floatformat:0 }}</td>
+                        </tr>
+                        {% if sale.discount %}
+                        <tr>
+                            <td class="text-muted">Descuento:</td>
+                            <td class="text-end text-danger">- Gs. {{ sale.discount|floatformat:0 }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td class="text-muted">Forma de Pago:</td>
+                            <td class="text-end">{{ sale.payment_form.name|default:"N/A" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Sucursal:</td>
+                            <td class="text-end">{{ sale.branch.name|default:"Sin asignar" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Estado:</td>
+                            <td class="text-end">
+                                {% if sale.status == 'completed' %}
+                                <span class="badge bg-success">Completada</span>
+                                {% elif sale.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pendiente</span>
+                                {% elif sale.status == 'cancelled' %}
+                                <span class="badge bg-danger">Cancelada</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ sale.status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if sale.notes %}
+    <div class="alert alert-light border mb-4">
+        <i class="fas fa-sticky-note"></i> <strong>Notas:</strong> {{ sale.notes }}
+    </div>
+    {% endif %}
+
+    <!-- Quotas Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-list-ol"></i> Cuotas ({{ quotas|length }})</h5>
+            {% if quotas %}
+            <div>
+                <span class="badge bg-success">Pagadas: {{ paid_count }}</span>
+                <span class="badge bg-warning text-dark">Pendientes: {{ pending_count }}</span>
+            </div>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            {% if quotas %}
+            <div class="table-responsive">
+                <table class="table table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Vencimiento</th>
+                            <th class="text-end">Importe</th>
+                            <th>Estado</th>
+                            <th>Fecha Pago</th>
+                            <th class="text-center">Accion</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for q in quotas %}
+                        <tr class="{% if q.status == 'paid' %}table-light{% elif q.status == 'overdue' %}table-danger{% endif %}">
+                            <td class="fw-bold">{{ q.quota_number }}/{{ q.total_plan }}</td>
+                            <td>{{ q.due_date|date:"d/m/Y" }}</td>
+                            <td class="text-end">Gs. {{ q.amount|floatformat:0 }}</td>
+                            <td>
+                                {% if q.status == 'paid' %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i> Pagada</span>
+                                {% elif q.status == 'pending' %}
+                                <span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> Pendiente</span>
+                                {% elif q.status == 'overdue' %}
+                                <span class="badge bg-danger"><i class="fas fa-exclamation"></i> Vencida</span>
+                                {% elif q.status == 'cancelled' %}
+                                <span class="badge bg-secondary">Cancelada</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ q.payment_date|date:"d/m/Y"|default:"-" }}</td>
+                            <td class="text-center">
+                                {% if q.status == 'pending' or q.status == 'overdue' %}
+                                <a href="{% url 'ui:quota_payment' quotum_id=q.id %}" class="btn btn-sm btn-success" title="Registrar pago">
+                                    <i class="fas fa-dollar-sign"></i> Cobrar
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-secondary fw-bold">
+                            <td colspan="2">Total</td>
+                            <td class="text-end">Gs. {{ quota_total|floatformat:0 }}</td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <i class="fas fa-file-invoice fa-3x mb-3"></i>
+                <p>Esta venta no tiene cuotas cargadas.</p>
+                <a href="{% url 'ui:quota_generator' %}?sale_id={{ sale.id }}" class="btn btn-success">
+                    <i class="fas fa-calculator"></i> Generar Cuotas Ahora
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+            <h6 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Zona de Administracion</h6>
+        </div>
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>Eliminar esta venta</strong>
+                    <p class="text-muted small mb-0">Se eliminaran tambien todas las cuotas asociadas. Esta accion no se puede deshacer.</p>
+                </div>
+                <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                    <i class="fas fa-trash"></i> Eliminar Venta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Assign Customer -->
+<div class="modal fade" id="assignCustomerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="{% url 'ui:sale_assign_customer' sale_id=sale.id %}">
+                {% csrf_token %}
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title"><i class="fas fa-user-edit"></i> Asignar Cliente a Venta {{ sale.sale_number }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="search-customer" class="form-label">Buscar cliente por nombre o documento:</label>
+                        <input type="text" class="form-control" id="search-customer" placeholder="Escribi el nombre o CI del cliente..." autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_customer_id" class="form-label">Seleccionar cliente:</label>
+                        <select class="form-select" name="new_customer_id" id="new_customer_id" required size="8">
+                            {% for c in all_customers %}
+                            <option value="{{ c.id }}" data-search="{{ c.first_name|lower }} {{ c.last_name|lower }} {{ c.document_number }}">
+                                {{ c.first_name }} {{ c.last_name }} - {{ c.document_number }}
+                                {% if c.phone %} | Tel: {{ c.phone }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-check"></i> Asignar Cliente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Delete Sale -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'ui:sale_delete' sale_id=sale.id %}">
+                {% csrf_token %}
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Confirmar Eliminacion</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Estas seguro de que queres eliminar la venta <strong>{{ sale.sale_number }}</strong>?</p>
+                    {% if quotas %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> Se eliminaran tambien <strong>{{ quotas|length }} cuotas</strong> asociadas.
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label class="form-label">Escribi <strong>ELIMINAR</strong> para confirmar:</label>
+                        <input type="text" class="form-control" id="confirm-delete" required pattern="ELIMINAR"
+                               placeholder="ELIMINAR" autocomplete="off">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger" id="btn-delete" disabled>
+                        <i class="fas fa-trash"></i> Eliminar Definitivamente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Customer search filter in assign modal
+document.getElementById('search-customer').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    const opts = document.querySelectorAll('#new_customer_id option');
+    opts.forEach(opt => {
+        const text = opt.dataset.search || '';
+        opt.style.display = text.includes(q) ? '' : 'none';
+    });
+});
+
+// Delete confirmation
+document.getElementById('confirm-delete').addEventListener('input', function() {
+    document.getElementById('btn-delete').disabled = this.value !== 'ELIMINAR';
+});
+</script>
+{% endblock %}

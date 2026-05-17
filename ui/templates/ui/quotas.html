@@ -1,0 +1,189 @@
+{% extends 'ui/base.html' %}
+
+{% block title %}Cuotas - Playas de Autos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h1><i class="fas fa-receipt"></i> Cuotas por Cobrar</h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{% url 'ui:quota_generator' %}" class="btn btn-success">
+                <i class="fas fa-calculator"></i> Generar Cuotas
+            </a>
+        </div>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="search-quotas"
+                               placeholder="Buscar por cliente o numero de venta...">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" id="filter-status">
+                        <option value="">Todos los estados</option>
+                        <option value="pending" selected>Pendiente</option>
+                        <option value="paid">Cobrada</option>
+                        <option value="overdue">Vencida</option>
+                        <option value="cancelled">Cancelada</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" id="filter-month">
+                        <option value="">Todos los meses</option>
+                    </select>
+                </div>
+                <div class="col-md-2 text-end">
+                    <span class="text-muted small" id="result-count"></span>
+                </div>
+                <div class="col-md-2 text-end">
+                    <strong class="small text-primary" id="result-total"></strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0" id="quotas-table">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Venta</th>
+                            <th>Cuota</th>
+                            <th class="text-end">Monto</th>
+                            <th>Vencimiento</th>
+                            <th class="text-center">Estado</th>
+                            <th>Fecha Pago</th>
+                            <th class="text-center" style="width:80px">Accion</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for quota in quotas %}
+                        <tr class="quota-row"
+                            data-search="{{ quota.customer.full_name|lower|default:'' }} {{ quota.sale.sale_number|lower|default:'' }}"
+                            data-status="{{ quota.status }}"
+                            data-amount="{{ quota.amount }}"
+                            data-month="{{ quota.due_date|date:'Y-m' }}">
+                            <td>
+                                {% if quota.customer %}
+                                <a href="{% url 'ui:customer_crm' customer_id=quota.customer.id %}" class="text-decoration-none">
+                                    {{ quota.customer.full_name }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">Sin cliente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if quota.sale %}
+                                <a href="{% url 'ui:sale_detail' sale_id=quota.sale.id %}" class="text-decoration-none">
+                                    {{ quota.sale.sale_number }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-bold">{{ quota.quota_number }}/{{ quota.total_plan }}</td>
+                            <td class="text-end fw-bold">Gs. {{ quota.amount|floatformat:0 }}</td>
+                            <td>{{ quota.due_date|date:"d/m/Y" }}</td>
+                            <td class="text-center">
+                                {% if quota.status == 'pending' %}
+                                <span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> Pendiente</span>
+                                {% elif quota.status == 'paid' %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i> Cobrada</span>
+                                {% elif quota.status == 'overdue' %}
+                                <span class="badge bg-danger"><i class="fas fa-exclamation"></i> Vencida</span>
+                                {% elif quota.status == 'cancelled' %}
+                                <span class="badge bg-secondary">Cancelada</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ quota.payment_date|date:"d/m/Y"|default:"-" }}</td>
+                            <td class="text-center">
+                                {% if quota.status == 'pending' or quota.status == 'overdue' %}
+                                <a href="{% url 'ui:quota_payment' quotum_id=quota.id %}" class="btn btn-sm btn-success" title="Cobrar cuota">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="fas fa-check-circle fa-2x mb-2"></i>
+                                <p>No hay cuotas registradas</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const searchInput = document.getElementById('search-quotas');
+    const filterStatus = document.getElementById('filter-status');
+    const filterMonth = document.getElementById('filter-month');
+    const resultCount = document.getElementById('result-count');
+    const resultTotal = document.getElementById('result-total');
+    const rows = document.querySelectorAll('.quota-row');
+
+    // Build month options from data
+    const months = new Set();
+    rows.forEach(r => { if (r.dataset.month) months.add(r.dataset.month); });
+    Array.from(months).sort().reverse().forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        const [y, mo] = m.split('-');
+        const names = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        opt.textContent = names[parseInt(mo)-1] + ' ' + y;
+        filterMonth.appendChild(opt);
+    });
+
+    function formatGs(n) { return Math.round(n).toLocaleString('es-PY'); }
+
+    function applyFilters() {
+        const q = searchInput.value.toLowerCase();
+        const status = filterStatus.value;
+        const month = filterMonth.value;
+        let visible = 0, total = 0;
+
+        rows.forEach(row => {
+            let show = true;
+            if (q && !row.dataset.search.includes(q)) show = false;
+            if (status && row.dataset.status !== status) show = false;
+            if (month && row.dataset.month !== month) show = false;
+            row.style.display = show ? '' : 'none';
+            if (show) {
+                visible++;
+                total += parseFloat(row.dataset.amount) || 0;
+            }
+        });
+
+        resultCount.textContent = visible + ' de ' + rows.length + ' cuotas';
+        resultTotal.textContent = 'Total visible: Gs. ' + formatGs(total);
+    }
+
+    [searchInput, filterStatus, filterMonth].forEach(el => {
+        el.addEventListener('input', applyFilters);
+        el.addEventListener('change', applyFilters);
+    });
+
+    applyFilters();
+})();
+</script>
+
+<style>
+    .quota-row:hover { background-color: #eaf2f8 !important; }
+</style>
+{% endblock %}

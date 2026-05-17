@@ -1,0 +1,52 @@
+Enterprise found: AUTO OFERTAS (RUC: 12345678)
+
+Before linking:
+  Orphaned brands: 0
+  Orphaned vehicles: 0
+
+After linking:
+  Total brands: 6 (linked to AUTO OFERTAS: 6)
+  Total vehicles: 111 (linked to AUTO OFERTAS: 111)
+
+SQL verification:
+  Remaining orphaned brands: 0
+  Remaining orphaned vehicles: 0
+ERROR: 'charmap' codec can't encode character '\u2713' in position 2: character maps to <undefined>
+python : Traceback (most recent call last):
+En línea: 1 Carácter: 1
++ python link_all_data.py > link_all_data_output.txt 2>&1 ; echo "Done" ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last) 
+   ::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "C:\Users\prueb\CascadeProjects\playa\link_all_data.py", line 78, in 
+link_enterprise_data
+    print("\n\u2713 SUCCESS: All data properly linked to enterprise")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\prueb\AppData\Local\Python\pythoncore-3.14-64\Lib\site-package
+s\colorama\ansitowin32.py", line 47, in write
+    self.__convertor.write(text)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\prueb\AppData\Local\Python\pythoncore-3.14-64\Lib\site-package
+s\colorama\ansitowin32.py", line 177, in write
+    self.write_and_convert(text)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\prueb\AppData\Local\Python\pythoncore-3.14-64\Lib\site-package
+s\colorama\ansitowin32.py", line 205, in write_and_convert
+    self.write_plain_text(text, cursor, len(text))
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\prueb\AppData\Local\Python\pythoncore-3.14-64\Lib\site-package
+s\colorama\ansitowin32.py", line 210, in write_plain_text
+    self.wrapped.write(text[start:end])
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\prueb\AppData\Local\Python\pythoncore-3.14-64\Lib\encodings\cp
+1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2713' in 
+position 2: character maps to <undefined>
+Done
+
+
+=== FILE READ SUCCESSFULLY ===

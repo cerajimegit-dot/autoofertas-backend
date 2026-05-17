@@ -1,0 +1,155 @@
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+.env
+.env.local
+.env.postgres
+bench_history.csv
+db.sqlite3
+db.sqlite3-journal
+db.sqlite3-wal
+db.sqlite3-shm
+db.sqlite3.backup.*
+db.sqlite3.corrupto*
+db_backup_*.sqlite3
+stock.db
+/media
+/staticfiles
+/static
+
+# Reportes y archivos temporales de migraciones anteriores (no versionar)
+migration_reports/
+fix_relations.sql
+EXECUTE_LINK_NOW.py
+PROJECT_STATUS.py
+SYSTEM_READY.py
+critical_runtime_test.py
+crear_usuarios.py
+check_and_save.py
+check_enterprise_associations.py
+check_multibranch_readiness.py
+check_output.txt
+check_schema.py
+check_schema_direct.py
+check_user_data.py
+convert_output.py
+convert_verification.py
+FINAL_VERIFICATION_REPORT.py
+
+# Locks de oficina
+~$*
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+htmlcov/
+.pytest_cache/
+
+# Migrations (optional)
+# migrations/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Local development
+.env.local
+*.local
+
+# Logs
+logs/
+*.log
+
+# Uploads
+uploads/
+
+# === Secretos y archivos sensibles ===
+# Cualquier archivo con credenciales/passwords NUNCA debe ir a GitHub.
+credenciales.txt
+USUARIOS_ACCESO.txt
+*.credenciales
+*.password
+*.secret
+*.pem
+*.key
+secrets/
+
+# Backups de BD
+*.dump
+*.sql.gz
+backups/
+db_backup_*
+*.sqlite3.backup.*
+*.sqlite3.corrupto*
+
+# Archivos del usuario (Excel/ODS con datos reales del negocio)
+52-FLUJO DE CAJA*.ods
+flujo_caja*.ods
+sample_*.xlsx
+*_importacion.xlsx
+cuotas/
+sucursal/
+ventas/
+archivos_playa/
+dump_*.json
+
+# Worktrees y configs locales de Claude
+.claude/worktrees/
+
+# Logs antiguos de migración inicial (referencia histórica, no útil para el repo)
+migration_log*.txt
+migration_final.txt
+migration_readable.txt
+migration_verify.txt
+verification_result.txt
+verify_migration_output.txt
+inspect_output.txt
+inspect_readable.txt
+final_output.txt
+link_all_data_output.txt
+stock - copia.db
+stock.db

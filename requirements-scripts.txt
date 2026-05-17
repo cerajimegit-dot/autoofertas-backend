@@ -1,0 +1,5 @@
+# Dependencias opcionales, sólo para los scripts de importación desde Excel.
+# No son necesarias para arrancar el servidor.
+# Instalar con: pip install -r requirements-scripts.txt
+pandas
+openpyxl

@@ -1,0 +1,181 @@
+{% extends 'ui/base.html' %}
+
+{% block title %}Dashboard - Playas de Autos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1>
+                <i class="fas fa-chart-line"></i> Dashboard
+                {% if enterprise %}
+                    <small class="text-muted">{{ enterprise.name }}</small>
+                {% endif %}
+            </h1>
+        </div>
+    </div>
+
+    <!-- KPIs Row -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="stat-number" id="total-vehicles">-</div>
+                    <div class="stat-label">
+                        <i class="fas fa-car"></i> Vehículos en Stock
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card danger">
+                <div class="card-body">
+                    <div class="stat-number" id="total-sales">-</div>
+                    <div class="stat-label">
+                        <i class="fas fa-handshake"></i> Total Ventas
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card warning">
+                <div class="card-body">
+                    <div class="stat-number" id="pending-quotas">-</div>
+                    <div class="stat-label">
+                        <i class="fas fa-receipt"></i> Cuotas Pendientes
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card success">
+                <div class="card-body">
+                    <div class="stat-number" id="total-customers">-</div>
+                    <div class="stat-label">
+                        <i class="fas fa-users"></i> Clientes
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-bar"></i> Ventas por Mes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-pie"></i> Estado de Cuotas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="quotasChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Acciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{% url 'ui:vehicles' %}" class="btn btn-primary me-2">
+                        <i class="fas fa-plus"></i> Ver Vehículos
+                    </a>
+                    <a href="{% url 'ui:sales' %}" class="btn btn-success me-2">
+                        <i class="fas fa-plus"></i> Ver Ventas
+                    </a>
+                    <a href="{% url 'ui:quotas' %}" class="btn btn-warning me-2">
+                        <i class="fas fa-plus"></i> Ver Cuotas
+                    </a>
+                    <a href="{% url 'ui:customers' %}" class="btn btn-info">
+                        <i class="fas fa-plus"></i> Ver Clientes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load dashboard statistics
+    fetch('{% url "ui:api_dashboard_stats" %}', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Update KPIs
+        document.getElementById('total-vehicles').textContent = data.total_vehicles;
+        document.getElementById('total-sales').textContent = data.total_sales;
+        document.getElementById('pending-quotas').textContent = data.pending_quotas;
+        document.getElementById('total-customers').textContent = data.total_customers;
+
+        // Sales Chart
+        const salesCtx = document.getElementById('salesChart').getContext('2d');
+        new Chart(salesCtx, {
+            type: 'line',
+            data: {
+                labels: data.sales_data.map(d => 'Mes ' + d.month),
+                datasets: [{
+                    label: 'Ventas',
+                    data: data.sales_data.map(d => d.count),
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        // Quotas Status Chart
+        const quotasCtx = document.getElementById('quotasChart').getContext('2d');
+        new Chart(quotasCtx, {
+            type: 'doughnut',
+            data: {
+                labels: data.quotas_status.map(q => q.status),
+                datasets: [{
+                    data: data.quotas_status.map(q => q.count),
+                    backgroundColor: ['#f39c12', '#27ae60', '#e74c3c', '#95a5a6']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true }
+                }
+            }
+        });
+    })
+    .catch(error => console.error('Error:', error));
+</script>
+{% endblock %}

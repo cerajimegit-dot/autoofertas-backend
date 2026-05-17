@@ -1,0 +1,170 @@
+{% extends 'ui/base.html' %}
+
+{% block title %}CRM - Editar Cliente: {{ customer.first_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mb-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-3">
+                <i class="fas fa-edit"></i> Editar Cliente: {{ customer.first_name }} {{ customer.last_name }}
+            </h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'ui:customer_crm' customer.id %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Cancelar
+            </a>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle"></i> {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-form-edit"></i> Información del Cliente</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="first_name" class="form-label">Nombre *</label>
+                                <input type="text" class="form-control" id="first_name" name="first_name" 
+                                       value="{{ customer.first_name }}" required>
+                                <div class="invalid-feedback">El nombre es requerido</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="last_name" class="form-label">Apellido *</label>
+                                <input type="text" class="form-control" id="last_name" name="last_name" 
+                                       value="{{ customer.last_name }}" required>
+                                <div class="invalid-feedback">El apellido es requerido</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Email *</label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       value="{{ customer.email }}" required>
+                                <div class="invalid-feedback">El email es requerido y debe ser válido</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label">Teléfono *</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" 
+                                       value="{{ customer.phone }}" required>
+                                <div class="invalid-feedback">El teléfono es requerido</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Dirección</label>
+                            <input type="text" class="form-control" id="address" name="address" 
+                                   value="{{ customer.address }}" placeholder="Calle, número, apartamento">
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="city" class="form-label">Ciudad</label>
+                                <input type="text" class="form-control" id="city" name="city" 
+                                       value="{{ customer.city }}" placeholder="Ciudad">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="estado" class="form-label">Estado</label>
+                                <select class="form-select" id="estado" name="estado">
+                                    <option value="Active" {% if customer.estado == 'Active' %}selected{% endif %}>Activo</option>
+                                    <option value="Inactive" {% if customer.estado == 'Inactive' %}selected{% endif %}>Inactivo</option>
+                                    <option value="Suspended" {% if customer.estado == 'Suspended' %}selected{% endif %}>Suspendido</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Información de Registro</label>
+                            <div class="alert alert-secondary">
+                                <small>
+                                    <strong>Cliente desde:</strong> {{ customer.created_at|date:"d/m/Y H:i" }}<br>
+                                    <strong>Última actualización:</strong> {{ customer.updated_at|date:"d/m/Y H:i" }}<br>
+                                    <strong>ID de Cliente:</strong> #{{ customer.id }}
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'ui:customer_crm' customer.id %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Sidebar -->
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Ayuda</h5>
+                </div>
+                <div class="card-body">
+                    <p><small>Los campos marcados con * son obligatorios.</small></p>
+                    <p><small>Todos los cambios se guardarán automáticamente en la base de datos.</small></p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-link"></i> Operaciones Relacionadas</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{% url 'ui:customer_crm' customer.id %}" class="btn btn-info w-100 mb-2">
+                        <i class="fas fa-eye"></i> Ver Detalle
+                    </a>
+                    <a href="{% url 'ui:payment_history' customer.id %}" class="btn btn-secondary w-100 mb-2">
+                        <i class="fas fa-history"></i> Historial de Pago
+                    </a>
+                    <a href="{% url 'ui:sale_register' %}" class="btn btn-primary w-100">
+                        <i class="fas fa-plus-circle"></i> Nueva Venta
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Bootstrap form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.querySelectorAll('.needs-validation');
+        Array.prototype.slice.call(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+</script>
+
+<style>
+    .card {
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: none;
+    }
+</style>
+{% endblock %}

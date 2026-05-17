@@ -1,0 +1,92 @@
+{% extends 'ui/base.html' %}
+
+{% block title %}Permisos de Usuarios{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-shield-alt"></i> Permisos de Usuarios</h2>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <i class="fas fa-users-cog"></i> Configurar accesos por usuario
+        </div>
+        <div class="card-body p-0">
+            {% if users_with_perms %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Rol</th>
+                            <th class="text-center">Accesos</th>
+                            <th class="text-center">Restricciones</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in users_with_perms %}
+                        <tr>
+                            <td>
+                                <i class="fas fa-user"></i>
+                                <strong>{{ item.user.get_full_name|default:item.user.username }}</strong>
+                                <br>
+                                <small class="text-muted">{{ item.user.username }}</small>
+                            </td>
+                            <td>
+                                {% if item.user.role == 'manager' %}
+                                    <span class="badge bg-primary">Encargado</span>
+                                {% elif item.user.role == 'vendor' %}
+                                    <span class="badge bg-secondary">Vendedor</span>
+                                {% else %}
+                                    <span class="badge bg-info">{{ item.user.get_role_display_spanish }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% with total=item.permissions|length %}
+                                {% with allowed=total|add:"-"|add:item.denied_count|stringformat:"d" %}
+                                <span class="badge bg-success">{{ allowed }} permitidos</span>
+                                {% endwith %}
+                                {% endwith %}
+                            </td>
+                            <td class="text-center">
+                                {% if item.denied_count > 0 %}
+                                    <span class="badge bg-danger">{{ item.denied_count }} restringidos</span>
+                                {% else %}
+                                    <span class="badge bg-success">Sin restricciones</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <a href="{% url 'ui:user_permissions_edit' item.user.id %}" 
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-edit"></i> Configurar
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-users fa-3x mb-3"></i>
+                <p>No hay usuarios no-admin para configurar en esta empresa.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <h6><i class="fas fa-info-circle text-info"></i> ¿Cómo funciona?</h6>
+            <ul class="mb-0">
+                <li>Los <strong>administradores</strong> siempre tienen acceso total.</li>
+                <li>Los usuarios sin restricciones explícitas tienen acceso a todo por defecto.</li>
+                <li>Usá <strong>Configurar</strong> para restringir o habilitar secciones específicas por usuario.</li>
+                <li>Ejemplo: permitir que solo el contador acceda a "Registrar Venta".</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends 'ui/base.html' %}
+
+{% block title %}Permisos - {{ target_user.get_full_name|default:target_user.username }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-user-shield"></i> 
+            Permisos de {{ target_user.get_full_name|default:target_user.username }}
+        </h2>
+        <a href="{% url 'ui:user_permissions_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-circle fa-4x text-primary mb-3"></i>
+                    <h5>{{ target_user.get_full_name|default:target_user.username }}</h5>
+                    <p class="text-muted mb-1">{{ target_user.email }}</p>
+                    {% if target_user.role == 'manager' %}
+                        <span class="badge bg-primary">Encargado</span>
+                    {% elif target_user.role == 'vendor' %}
+                        <span class="badge bg-secondary">Vendedor</span>
+                    {% else %}
+                        <span class="badge bg-info">{{ target_user.get_role_display_spanish }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-sliders-h"></i> Configurar Accesos
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold">Seleccionar accesos:</span>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="toggleAll(true)">
+                                        <i class="fas fa-check-double"></i> Todos
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="toggleAll(false)">
+                                        <i class="fas fa-times"></i> Ninguno
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Sección</th>
+                                        <th class="text-center" style="width: 120px;">Acceso</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for view_name, view_label in view_choices %}
+                                    <tr>
+                                        <td>
+                                            {% if 'CRM' in view_label %}
+                                                <i class="fas fa-cogs text-info"></i>
+                                            {% else %}
+                                                <i class="fas fa-window-maximize text-primary"></i>
+                                            {% endif %}
+                                            {{ view_label }}
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="form-check form-switch d-flex justify-content-center">
+                                                <input class="form-check-input perm-toggle" 
+                                                       type="checkbox" 
+                                                       name="perm_{{ view_name }}" 
+                                                       id="perm_{{ view_name }}"
+                                                       {% if view_name in current_perms and current_perms|dictsort:view_name %}
+                                                       {% endif %}
+                                                       {% for k, v in current_perms.items %}
+                                                           {% if k == view_name and v %}checked{% endif %}
+                                                       {% endfor %}
+                                                       >
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <a href="{% url 'ui:user_permissions_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar Permisos
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAll(state) {
+    document.querySelectorAll('.perm-toggle').forEach(function(cb) {
+        cb.checked = state;
+    });
+}
+</script>
+{% endblock %}

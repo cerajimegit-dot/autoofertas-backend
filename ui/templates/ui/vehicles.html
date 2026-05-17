@@ -1,0 +1,67 @@
+{% extends 'ui/base.html' %}
+
+{% block title %}Vehículos - Playas de Autos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1><i class="fas fa-car"></i> Inventario de Vehículos</h1>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title">Vehículos Disponibles ({{ vehicles.count }})</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Marca</th>
+                            <th>Modelo</th>
+                            <th>Año</th>
+                            <th>Color</th>
+                            <th>VIN</th>
+                            <th>Estado</th>
+                            <th>Precio</th>
+                            <th>Sucursal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vehicle in vehicles %}
+                        <tr>
+                            <td>#{{ vehicle.id }}</td>
+                            <td>{{ vehicle.brand.name }}</td>
+                            <td>{{ vehicle.model.name }}</td>
+                            <td>{{ vehicle.year }}</td>
+                            <td>{{ vehicle.color }}</td>
+                            <td><code>{{ vehicle.vin }}</code></td>
+                            <td>
+                                {% if vehicle.state == 'available' %}
+                                    <span class="badge badge-available">Disponible</span>
+                                {% elif vehicle.state == 'sold' %}
+                                    <span class="badge badge-sold">Vendido</span>
+                                {% elif vehicle.state == 'reserved' %}
+                                    <span class="badge badge-reserved">Reservado</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">{{ vehicle.state }}</span>
+                                {% endif %}
+                            </td>
+                            <td>Gs. {{ vehicle.price|floatformat:0 }}</td>
+                            <td>{{ vehicle.branch.name }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted">No hay vehículos registrados</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

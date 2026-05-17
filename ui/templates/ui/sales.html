@@ -1,0 +1,229 @@
+{% extends 'ui/base.html' %}
+
+{% block title %}Ventas - Playas de Autos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h1><i class="fas fa-handshake"></i> Registro de Ventas</h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{% url 'ui:sale_register' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> Nueva Venta
+            </a>
+            <a href="{% url 'ui:quota_generator' %}" class="btn btn-success">
+                <i class="fas fa-calculator"></i> Generar Cuotas
+            </a>
+        </div>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="search-sales"
+                               placeholder="Buscar por numero, cliente o vehiculo...">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" id="filter-status">
+                        <option value="">Todos los estados</option>
+                        <option value="pending">Pendiente</option>
+                        <option value="completed">Completada</option>
+                        <option value="cancelled">Cancelada</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" id="filter-quotas">
+                        <option value="">Con/sin cuotas</option>
+                        <option value="with">Con cuotas</option>
+                        <option value="without">Sin cuotas</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" id="filter-customer">
+                        <option value="">Todos los clientes</option>
+                        <option value="generic">Sin cliente real</option>
+                        <option value="assigned">Con cliente</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" id="filter-origin">
+                        <option value="">Todos los origenes</option>
+                        <option value="ods">Importado ODS (CM)</option>
+                        <option value="migrated">Migrado (MIG)</option>
+                        <option value="manual">Carga manual</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row g-2 align-items-center mt-1">
+                <div class="col-md-10 text-end">
+                    <span class="text-muted small" id="result-count">{{ sales|length }} ventas</span>
+                </div>
+                <div class="col-md-2 text-end">
+                    <strong class="small text-primary" id="result-total"></strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="sales-table">
+                    <thead>
+                        <tr>
+                            <th style="width:110px">Numero</th>
+                            <th>Cliente</th>
+                            <th>Vehiculo</th>
+                            <th class="text-end">Precio</th>
+                            <th>F. Pago</th>
+                            <th class="text-center">Estado</th>
+                            <th>Cuotas</th>
+                            <th>Fecha</th>
+                            <th class="text-center" style="width:80px">Accion</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in sales %}
+                        <tr class="sale-row" style="cursor:pointer"
+                            data-href="{% url 'ui:sale_detail' sale_id=sale.id %}"
+                            data-search="{{ sale.sale_number|lower }} {{ sale.customer.full_name|lower }} {{ sale.vehicle.brand.name|lower|default:'' }} {{ sale.vehicle.model.name|lower|default:'' }}"
+                            data-status="{{ sale.status }}"
+                            data-has-quotas="{{ sale.quotas.count|yesno:'with,without' }}"
+                            data-customer-type="{% if sale.customer.is_generic or not sale.customer %}generic{% else %}assigned{% endif %}"
+                            data-origin="{% if 'CM' in sale.sale_number %}ods{% elif 'MIG' in sale.sale_number %}migrated{% else %}manual{% endif %}"
+                            data-price="{{ sale.total_price }}">
+                            <td>
+                                <a href="{% url 'ui:sale_detail' sale_id=sale.id %}" class="fw-bold text-decoration-none">
+                                    {{ sale.sale_number }}
+                                </a>
+                                {% if 'CM' in sale.sale_number %}
+                                <span class="badge bg-info bg-opacity-75 ms-1" title="Importado desde planilla ODS - verificar datos"><i class="fas fa-file-import"></i> ODS</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if sale.customer.is_generic %}
+                                <span class="text-warning" title="Cliente generico - necesita asignacion">
+                                    <i class="fas fa-exclamation-triangle"></i> {{ sale.customer.full_name }}
+                                </span>
+                                {% elif sale.customer %}
+                                {{ sale.customer.full_name }}
+                                {% else %}
+                                <span class="text-danger"><i class="fas fa-user-slash"></i> Sin cliente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if sale.vehicle %}
+                                {{ sale.vehicle.brand.name }} {{ sale.vehicle.model.name }}
+                                <small class="text-muted">({{ sale.vehicle.year }})</small>
+                                {% else %}
+                                <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">Gs. {{ sale.total_price|floatformat:0 }}</td>
+                            <td>{{ sale.payment_form.name|default:"-" }}</td>
+                            <td class="text-center">
+                                {% if sale.status == 'completed' %}
+                                <span class="badge bg-success">Completada</span>
+                                {% elif sale.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pendiente</span>
+                                {% elif sale.status == 'cancelled' %}
+                                <span class="badge bg-danger">Cancelada</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ sale.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if sale.quotas.count %}
+                                <span class="badge bg-info">{{ sale.quotas.count }} cuotas</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Sin cuotas</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ sale.sale_date|date:"d/m/Y" }}</td>
+                            <td class="text-center">
+                                <a href="{% url 'ui:sale_detail' sale_id=sale.id %}" class="btn btn-sm btn-outline-primary" title="Ver detalle">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="fas fa-folder-open fa-2x mb-2"></i>
+                                <p>No hay ventas registradas</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const searchInput = document.getElementById('search-sales');
+    const filterStatus = document.getElementById('filter-status');
+    const filterQuotas = document.getElementById('filter-quotas');
+    const filterCustomer = document.getElementById('filter-customer');
+    const filterOrigin = document.getElementById('filter-origin');
+    const resultCount = document.getElementById('result-count');
+    const resultTotal = document.getElementById('result-total');
+    const rows = document.querySelectorAll('.sale-row');
+
+    function formatGs(n) { return Math.round(n).toLocaleString('es-PY'); }
+
+    function applyFilters() {
+        const q = searchInput.value.toLowerCase();
+        const status = filterStatus.value;
+        const quotas = filterQuotas.value;
+        const ctype = filterCustomer.value;
+        const origin = filterOrigin.value;
+        let visible = 0, total = 0;
+
+        rows.forEach(row => {
+            let show = true;
+            if (q && !row.dataset.search.includes(q)) show = false;
+            if (status && row.dataset.status !== status) show = false;
+            if (quotas && row.dataset.hasQuotas !== quotas) show = false;
+            if (ctype && row.dataset.customerType !== ctype) show = false;
+            if (origin && row.dataset.origin !== origin) show = false;
+            row.style.display = show ? '' : 'none';
+            if (show) {
+                visible++;
+                total += parseFloat(row.dataset.price) || 0;
+            }
+        });
+
+        resultCount.textContent = visible + ' de ' + rows.length + ' ventas';
+        resultTotal.textContent = 'Total: Gs. ' + formatGs(total);
+    }
+
+    [searchInput, filterStatus, filterQuotas, filterCustomer, filterOrigin].forEach(el => {
+        el.addEventListener('input', applyFilters);
+        el.addEventListener('change', applyFilters);
+    });
+
+    applyFilters();
+
+    // Click row to navigate (except links/buttons inside)
+    rows.forEach(row => {
+        row.addEventListener('click', function(e) {
+            if (e.target.closest('a, button')) return;
+            window.location.href = this.dataset.href;
+        });
+    });
+})();
+</script>
+
+<style>
+    .sale-row:hover { background-color: #eaf2f8 !important; }
+</style>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends 'ui/base.html' %}
+
+{% block title %}CRM - Gestión de Clientes{% endblock %}
+
+{% block content %}
+<div class="container-fluid mb-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-3">
+                <i class="fas fa-users"></i> Gestión de Clientes CRM
+            </h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'ui:sale_register' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> Nueva Venta
+            </a>
+            <a href="{% url 'ui:dashboard' %}" class="btn btn-secondary">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-search"></i> Buscar y Filtrar</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-8">
+                    <input type="text" name="q" class="form-control" placeholder="Buscar por nombre, email o teléfono..." value="{{ search_query }}">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-info w-100">
+                        <i class="fas fa-search"></i> Buscar
+                    </button>
+                    {% if search_query %}
+                    <a href="{% url 'ui:customer_list_crm' %}" class="btn btn-secondary w-100 mt-2">
+                        <i class="fas fa-times"></i> Limpiar Filtro
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistics Card -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">Total de Clientes</h6>
+                    <h3 class="text-primary">{{ total_customers }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">Clientes Mostrados</h6>
+                    <h3 class="text-info">{{ customers_data|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">Monto Pendiente Total</h6>
+                    <h3 class="text-danger">{{ total_pending|default:"$0" }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customers Table -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-table"></i> Lista de Clientes</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Ventas</th>
+                        <th>Monto Pendiente</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in customers_data %}
+                    <tr>
+                        <td>
+                            <strong>{{ item.customer.first_name }} {{ item.customer.last_name }}</strong>
+                        </td>
+                        <td>
+                            <a href="mailto:{{ item.customer.email }}" title="Email">
+                                {{ item.customer.email|truncatewords:1 }}
+                            </a>
+                        </td>
+                        <td>
+                            <a href="tel:{{ item.customer.phone }}" title="Teléfono">
+                                {{ item.customer.phone }}
+                            </a>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-secondary">{{ item.sale_count }}</span>
+                        </td>
+                        <td class="text-end">
+                            {% if item.pending_amount > 0 %}
+                            <span class="badge bg-danger">${{ item.pending_amount|floatformat:2 }}</span>
+                            {% else %}
+                            <span class="badge bg-success">Pagado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{% if item.customer.estado == 'Active' %}success{% else %}warning{% endif %}">
+                                {{ item.customer.estado }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'ui:customer_crm' item.customer.id %}" class="btn btn-sm btn-primary" title="Ver detalle">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'ui:customer_edit' item.customer.id %}" class="btn btn-sm btn-warning" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'ui:payment_history' item.customer.id %}" class="btn btn-sm btn-info" title="Historial de pago">
+                                <i class="fas fa-history"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            {% if search_query %}
+                            No se encontraron clientes que coincidan con "{{ search_query }}"
+                            {% else %}
+                            No hay clientes registrados
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: none;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}

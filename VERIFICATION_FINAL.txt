@@ -1,0 +1,28 @@
+Verification Report for Enterprise: AUTO OFERTAS
+============================================================
+
+Brands:
+  Total: 6
+  Linked to AUTO OFERTAS: 6
+  Orphaned (no enterprise): 0
+
+Vehicles:
+  Total: 111
+  Linked to AUTO OFERTAS: 111
+  Orphaned (no enterprise): 0
+
+Other Data:
+  Customers: 56
+  Sales: 21
+  Quotas: 108
+
+SQL Direct Verification:
+  Orphaned brands (NULL enterprise_id): 0
+  Orphaned vehicles (NULL enterprise_id): 0
+
+============================================================
+SUCCESS: All data properly linked to enterprise
+
+The vehicles and brands you registered are now:
+  - Related to the test account 'AUTO OFERTAS'
+  - Ready for dashboard and reporting
