@@ -4,7 +4,9 @@ services:
   - type: web
     name: playa-backend
     env: python
-    region: oregon
+    # Virginia es la región de Render más cercana a São Paulo donde está
+    # nuestra Supabase. Oregon agregaba ~70ms extra por request.
+    region: virginia
     plan: free
     buildCommand: |
       pip install -r requirements.txt
