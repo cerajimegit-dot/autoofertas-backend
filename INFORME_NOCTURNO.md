@@ -1,20 +1,24 @@
-# Informe nocturno — Pack 2 + 3 + 4
+# Informe — Packs 2 + 3 + 4 + 5
 
-> Bitácora del trabajo autónomo. Todo está en la branch `staging` de
-> ambos repos (`autoofertas-backend` y `autoofertas-frontend`).
-> **No se aplicó ninguna migración a producción.**
+> Bitácora del trabajo autónomo. Trabajo en `staging` de
+> `autoofertas-backend` y `autoofertas-frontend`. La nueva infra SaaS
+> queda en branch separada `saas-platform` (backend) y carpeta nueva
+> `playa-saas-landing/` (frontend).
+> **AUTO OFERTAS producción NO se vio afectada.**
 
 ---
 
 ## TL;DR
 
-- **13 features nuevas** entre Pack 2, 3 y 4, todas en `staging`.
-- **10 endpoints backend nuevos** + 3 mejoras a endpoints existentes.
-- **7 paneles/páginas frontend nuevos** y mejoras a 5 páginas.
-- **55 tests nuevos** (todos verdes). Suite total: **155 passed**.
-- **28 commits** entre los dos repos.
-- **0 cambios en BD producción**. Migración 0010 (B7 de Pack 1) sigue
-  pendiente de aplicar; nada del Pack 2/3/4 requiere migración.
+- **19 features nuevas** entre Pack 2-5, en `staging` + branch SaaS aparte.
+- **15 endpoints backend nuevos** + 4 mejoras a endpoints existentes.
+- **9 paneles/páginas frontend nuevos** y mejoras a 6 páginas.
+- **74 tests nuevos** (todos verdes). Suite total: **189 passed**.
+- **38 commits** entre los repos.
+- **App SaaS opt-in completa** (signup público + planes + suscripciones).
+- **Landing page no-build** lista para deploy en `playa-saas-landing/`.
+- **0 cambios en BD producción**. Migraciones 0010-0013 quedan listas
+  para aplicar cuando deploys.
 
 ---
 
@@ -328,6 +332,130 @@ Estos son ítems que dependen de vos (yo no puedo hacerlos):
   - El PDF dossier en una venta real (¿el logo carga? ¿se imprime bien?).
   - El visor de audit log con datos reales.
   - El panel "A cobrar" con datos reales de Supabase.
+
+---
+
+## Pack 5 (sesión actual — TC obligatorio, automatizaciones, SaaS, features descartadas)
+
+### P5-1 — TC obligatorio cuando moneda=USD
+**Backend** + **Frontend**
+
+- VehicleCost ahora tiene `exchange_rate` (migración 0011). Property
+  `amount_pyg` que convierte automáticamente.
+- Validación uniforme `clean()` + serializer `validate()` en los 3
+  modelos que aceptan USD: Vehicle, VehicleCost, CashMovement.
+- Frontend: campos TC marcados como required cuando se elige USD.
+  Vehicle: dropdown de cotizaciones activas. VehicleCost: input
+  inline en cada fila. CashMovement: ya tenía pero ahora con required.
+- Análisis de margen actualizado: usa `amount_pyg` para sumar costos
+  en USD correctamente.
+
+Tests (9/9): rechaza creación sin TC, acepta con TC, property
+amount_pyg en PYG/USD-con-TC/USD-sin-TC.
+
+### P5-2 — Auto-generar cuotas al crear venta a crédito
+**Backend**: `POST /api/sales/{id}/auto-generate-quotas/`
+**Frontend**: botón "⚡ Plan rápido" en QuotaGenerator
+
+Genera N cuotas iguales con redondeo correcto (la última absorbe la
+diferencia para que la suma cuadre al peso). Manejo correcto del
+"31 enero + 1 mes = 28/29 febrero".
+
+Default sensato (12 cuotas mensuales arrancando +30d), params
+opcionales. Rechaza si total-seña ≤ 0 (400) o si ya hay cuotas (409).
+
+Tests (8/8).
+
+### P5-3 — Comando `send_daily_digest`
+**Backend** + config de email
+
+Management command que imprime un digest diario por empresa con:
+ventas del día, cuotas que vencen hoy (con nombre del cliente),
+vencidas acumuladas, cobranzas, morosidad %, estancados, flujo de
+caja del día, alertas críticas.
+
+Settings: backend de email console por default, SMTP cuando hay env
+vars. Render Cron Job sugerido: `0 11 * * *` (08:00 hora Asunción).
+
+Tests (7/7): dry-run, todas las secciones, filtro por enterprise.
+
+### P5-4 — Alertas activas configurables por umbral
+**Backend**: `GET /api/dashboard/active_alerts/`
+**Frontend**: banner ActiveAlertsBanner arriba del Dashboard
+
+Umbrales en `settings.ALERT_THRESHOLDS` (override por env vars):
+mora_pct, estancados, vencidas_count, dias_pago — cada uno con
+warn/crit. Backend devuelve sólo las alertas vigentes con severity,
+title, detail, action (path al que ir).
+
+Frontend: filas warn (ámbar) / crit (rojo) con botón "Ir" que navega
+a la página relevante. Dismissable por sesión.
+
+Tests (4/4).
+
+### P5-5 — SaaS multiempresa (branch `saas-platform` separada)
+**Backend**: branch nueva `saas-platform` con app `saas/` opt-in
+**Frontend**: nuevo repo `playa-saas-landing/` no-build
+
+App `saas` opcional (`SAAS_ENABLED=False` por default → no afecta
+AUTO OFERTAS). Cuando se enciende:
+- Endpoints `/api/saas/`: plans (público), signup (público), my_subscription, upgrade.
+- Modelo Subscription (1-a-1 con Enterprise): plan, status,
+  trial_ends_at, current_period_ends_at, external_subscription_id
+  (placeholder Stripe), property is_active/is_trial.
+- Catálogo de planes hardcoded: trial 14d (gratis) → starter ($29) →
+  pro ($79) → enterprise ($199), cada uno con límites de vehículos /
+  sucursales / usuarios / cuotas/mes.
+
+Landing `playa-saas-landing/`:
+- Hero + 9 features + pricing dinámico + signup form + welcome.
+- Carga planes desde `/api/saas/plans/` con fallback hardcoded.
+- Color azul para diferenciar de AUTO OFERTAS (rojo).
+- README explica cómo desplegar (Render Static / Cloudflare Pages).
+
+Tests SaaS (6/6 con SAAS_ENABLED=True): plans públicos, signup
+completo, email duplicado, password corta, my_subscription auth,
+upgrade guarda intención.
+
+### P5-6 — Búsqueda fuzzy de vehículos por VIN
+**Backend**: `/api/vehicles/search/` mejorado + migraciones 0012/0013
+
+- Migración 0013_vehicle_search_pg_trgm crea índice GIN trgm sobre
+  Vehicle.vin (asume pg_trgm de migración 0010).
+- VehicleViewSet.search detecta pg_trgm y usa similarity() cuando
+  está disponible (orden por similaridad). Fallback ILIKE.
+- Permite que "JTDDT123" matchee "JTDBT123" (typo de letra).
+- Side-effect: incluye 0012_alter_sale_status que era un drift
+  legítimo del modelo Sale que Django nunca generó.
+
+### P5-7 — Heatmap de cobros por día del mes
+**Backend**: `GET /api/dashboard/payment_heatmap/`
+**Frontend**: panel PaymentHeatmapPanel en Dashboard
+
+Agrupa cobros por día del mes (1-31) en ventana de N meses. Devuelve
+days[] con count y amount + top_count_day + top_amount_day para que
+la UI muestre picos sin recalcular.
+
+Frontend: grid 7-col con intensidad de color proporcional al pico,
+switch entre métrica Cantidad/Monto, ventana 3/6/12 meses. Tooltip
+en cada celda con el detalle exacto.
+
+Tests (6/6).
+
+---
+
+## Pendientes operativos del Pack 5
+
+1. **Migraciones 0011, 0012, 0013** para aplicar cuando deploys (junto
+   con la 0010 de Pack 1). Las 4 son aditivas — no rompen datos
+   existentes.
+2. **Email SMTP**: setear `EMAIL_HOST`, `EMAIL_HOST_USER`, etc. en
+   Render para que el digest diario salga por email.
+3. **Render Cron Job**: agendar `python manage.py send_daily_digest`
+   en `0 11 * * *` (UTC).
+4. **SaaS push del frontend**: el repo `playa-saas-landing/` está
+   commiteado localmente pero no pusheado — falta crear el repo en
+   GitHub y hacer push. Documentado en su README.
 
 ---
 
