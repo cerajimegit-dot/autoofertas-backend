@@ -767,3 +767,142 @@ class DashboardViewSet(viewsets.ViewSet):
         }
 
         return Response(data)
+
+    @method_decorator(dashboard_cache(120))
+    @action(detail=False, methods=['get'])
+    def health(self, request):
+        """Indicadores de salud del negocio en el período pedido.
+
+        Métricas (todas calculadas con el filtro de ?date_from/?date_to
+        y ?branch= cuando aplica):
+
+        - `tasa_morosidad`: % de cuotas con due_date < hoy y no pagadas,
+          sobre total de cuotas activas. Indicador clave de calidad
+          de cartera.
+        - `ticket_promedio`: monto promedio de las ventas cerradas del
+          período. Sube → la playa está moviendo autos más caros.
+        - `dias_promedio_pago`: promedio de (payment_date - due_date)
+          en cuotas pagadas del período. Negativo = pagan antes;
+          positivo = pagan tarde.
+        - `vehiculos_estancados_90d`: cantidad de vehículos disponibles
+          con created_at > 90 días. Candidatos a bajar de precio.
+        - `top_vendedor`: vendedor con más ventas en el período (id,
+          nombre, cantidad, monto total).
+        - `tasa_conversion_clientes`: ventas / clientes únicos. Subir
+          significa más cross-sell (clientes repiten).
+
+        El cache es de 120s porque estas métricas no cambian con cada
+        clic — son útiles para mirar tendencias.
+        """
+        from django.db.models import F, ExpressionWrapper, DurationField
+        user = request.user
+        if not user.enterprise:
+            return Response({'error': 'Usuario sin empresa'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        date_from, date_to = self._parse_period(request)
+        today = date.today()
+
+        # Base querysets multi-tenancy + período + sucursal.
+        sales_base = Sale.objects.filter(
+            enterprise=user.enterprise,
+            status='completed',
+            sale_date__date__gte=date_from,
+            sale_date__date__lte=date_to,
+        )
+        sales_base = self._filter_sales(sales_base, request)
+
+        quotas_base = Quotum.objects.filter(
+            enterprise=user.enterprise,
+            sale__status='completed',
+        )
+        quotas_base = self._filter_quotas(quotas_base, request)
+
+        # === 1. Tasa de morosidad ===
+        # Numerador: cuotas no pagadas con vencimiento ya pasado.
+        # Denominador: cuotas activas (no canceladas).
+        cuotas_activas = quotas_base.exclude(status='cancelled')
+        n_activas = cuotas_activas.count()
+        n_vencidas = cuotas_activas.filter(
+            due_date__lt=today,
+        ).exclude(status='paid').count()
+        tasa_mora = (n_vencidas / n_activas * 100) if n_activas else 0.0
+
+        # === 2. Ticket promedio ===
+        ticket = sales_base.aggregate(avg=Avg('total_price'))['avg']
+        ticket_promedio = float(ticket) if ticket else 0.0
+        n_ventas = sales_base.count()
+
+        # === 3. Días promedio de pago ===
+        # SQLite no soporta restar DateField nativamente en aggregate, así
+        # que iteramos en Python (las cuotas pagadas son <1000 típicamente).
+        pagadas = list(quotas_base.filter(
+            status='paid',
+            payment_date__gte=date_from,
+            payment_date__lte=date_to,
+        ).values_list('due_date', 'payment_date'))
+        if pagadas:
+            diffs = [(pd - dd).days for dd, pd in pagadas if dd and pd]
+            dias_promedio_pago = sum(diffs) / len(diffs) if diffs else 0.0
+        else:
+            dias_promedio_pago = None
+
+        # === 4. Vehículos estancados (>90 días) ===
+        vehs_base = Vehicle.objects.filter(
+            enterprise=user.enterprise, state='available',
+        )
+        vehs_base = self._filter_vehicles(vehs_base, request)
+        cutoff_90 = today - timedelta(days=90)
+        estancados = vehs_base.filter(created_at__date__lt=cutoff_90).count()
+
+        # === 5. Top vendedor del período ===
+        top_seller_qs = (
+            sales_base.exclude(seller__isnull=True)
+                      .values('seller_id', 'seller__first_name', 'seller__last_name')
+                      .annotate(n=Count('id'), total=Sum('total_price'))
+                      .order_by('-total')
+        )
+        top = top_seller_qs.first()
+        top_vendedor = None
+        if top:
+            top_vendedor = {
+                'id':     top['seller_id'],
+                'nombre': f"{top['seller__first_name'] or ''} {top['seller__last_name'] or ''}".strip(),
+                'ventas': top['n'],
+                'total':  float(top['total'] or 0),
+            }
+
+        # === 6. Tasa de conversión (ventas / clientes únicos del período) ===
+        # Ojo: si la misma persona compra 2 autos cuenta 1 vez como cliente.
+        n_clientes_unicos = sales_base.values('customer_id').distinct().count()
+        tasa_conversion = (n_ventas / n_clientes_unicos) if n_clientes_unicos else 0.0
+
+        return Response({
+            'periodo': {
+                'date_from': date_from.isoformat(),
+                'date_to':   date_to.isoformat(),
+            },
+            'tasa_morosidad': {
+                'porcentaje': round(tasa_mora, 1),
+                'n_vencidas': n_vencidas,
+                'n_activas':  n_activas,
+            },
+            'ticket_promedio': {
+                'monto':    round(ticket_promedio, 0),
+                'n_ventas': n_ventas,
+            },
+            'dias_promedio_pago': {
+                'dias':       round(dias_promedio_pago, 1) if dias_promedio_pago is not None else None,
+                'n_muestras': len(pagadas),
+                # Interpretación: <0 pagan antes; >0 pagan tarde
+            },
+            'vehiculos_estancados_90d': {
+                'count': estancados,
+            },
+            'top_vendedor': top_vendedor,
+            'tasa_conversion_clientes': {
+                'ratio':             round(tasa_conversion, 2),
+                'ventas':            n_ventas,
+                'clientes_unicos':   n_clientes_unicos,
+            },
+        })
