@@ -182,6 +182,44 @@ class VehicleViewSet(viewsets.ModelViewSet):
         serializer.save(enterprise=user.enterprise, branch=branch)
     
     @action(detail=False, methods=['get'])
+    def search(self, request):
+        """Busca vehículos para el palette global (Ctrl+K).
+
+        Filtra por VIN, marca, modelo, año (exacto si q es numérico) y
+        código de stock. Devuelve hasta `limit` resultados con los campos
+        mínimos que necesita el palette.
+        """
+        from django.db.models import Q
+        q = (request.query_params.get('q') or '').strip()
+        if len(q) < 2:
+            return Response({'results': []})
+        try:
+            limit = min(int(request.query_params.get('limit', 8)), 30)
+        except ValueError:
+            limit = 8
+
+        qs = self.get_queryset()
+        cond = (
+            Q(vin__icontains=q)
+            | Q(brand__name__icontains=q)
+            | Q(model__name__icontains=q)
+        )
+        if q.isdigit():
+            cond |= Q(year=int(q))
+        qs = qs.filter(cond)[:limit]
+
+        data = [{
+            'id': v.id,
+            'vin': v.vin or '',
+            'brand_name': v.brand.name if v.brand_id else '',
+            'model_name': v.model.name if v.model_id else '',
+            'year': v.year,
+            'state': v.state,
+            'state_display': v.get_state_display() if hasattr(v, 'get_state_display') else v.state,
+        } for v in qs]
+        return Response({'results': data})
+
+    @action(detail=False, methods=['get'])
     def by_state(self, request):
         """Obtener vehículos por estado"""
         state = request.query_params.get('state')

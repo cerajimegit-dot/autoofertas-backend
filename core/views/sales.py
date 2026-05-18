@@ -260,6 +260,52 @@ class PaymentFormViewSet(viewsets.ModelViewSet):
 class SaleViewSet(viewsets.ModelViewSet):
     """ViewSet para gestión de ventas"""
     permission_classes = [IsAuthenticated, IsEnterpriseOwnerOrAdmin, CanDeleteSale]
+
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        """Busca ventas para el palette global (Ctrl+K).
+
+        Filtra por sale_number, nombre/apellido del cliente, documento
+        del cliente, marca/modelo del vehículo y VIN. Devuelve hasta
+        `limit` resultados (default 8, máx 30) con los campos mínimos
+        que necesita el palette.
+
+        Usa el queryset filtrado por enterprise (multi-tenancy).
+        """
+        q = (request.query_params.get('q') or '').strip()
+        if len(q) < 2:
+            return Response({'results': []})
+        try:
+            limit = min(int(request.query_params.get('limit', 8)), 30)
+        except ValueError:
+            limit = 8
+
+        # Reutilizamos get_queryset para heredar el filtro de enterprise
+        # y los select_related/prefetch — el palette muestra el cliente y
+        # el vehículo, así que esos JOINs ya hacen falta igual.
+        qs = self.get_queryset().filter(
+            Q(sale_number__icontains=q)
+            | Q(customer__first_name__icontains=q)
+            | Q(customer__last_name__icontains=q)
+            | Q(customer__document_number__icontains=q)
+            | Q(vehicle__vin__icontains=q)
+            | Q(vehicle__brand__name__icontains=q)
+            | Q(vehicle__model__name__icontains=q)
+        )[:limit]
+
+        data = [{
+            'id': s.id,
+            'sale_number': s.sale_number,
+            'customer_name': getattr(s.customer, 'full_name', '') if s.customer_id else '',
+            'vehicle_info': (
+                f"{s.vehicle.brand.name if s.vehicle and s.vehicle.brand_id else ''} "
+                f"{s.vehicle.model.name if s.vehicle and s.vehicle.model_id else ''} "
+                f"{s.vehicle.year if s.vehicle else ''}"
+            ).strip() if s.vehicle_id else '',
+            'vehicle_vin': s.vehicle.vin if s.vehicle_id else '',
+            'sale_date': s.sale_date.isoformat() if s.sale_date else None,
+        } for s in qs]
+        return Response({'results': data})
     
     def get_queryset(self):
         # prefetch_related('quotas') es clave para que `Sale.collection_status`
