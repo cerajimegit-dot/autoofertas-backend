@@ -59,10 +59,26 @@ class VehicleCostSerializer(serializers.ModelSerializer):
         model = VehicleCost
         fields = (
             'id', 'enterprise', 'vehicle', 'concept', 'amount', 'currency',
+            'exchange_rate',
             'notes', 'order', 'created_at', 'updated_at',
         )
         # enterprise lo asigna el ViewSet
         read_only_fields = ('id', 'enterprise', 'created_at', 'updated_at')
+
+    def validate(self, attrs):
+        """USD exige exchange_rate. Replicamos la validación del modelo
+        a nivel serializer para que DRF devuelva 400 con field errors
+        en lugar de un 500 de ValidationError sin atajar.
+        """
+        currency = attrs.get('currency', getattr(self.instance, 'currency', 'PYG'))
+        exchange_rate = attrs.get('exchange_rate',
+                                  getattr(self.instance, 'exchange_rate', None))
+        if currency == 'USD' and not exchange_rate:
+            raise serializers.ValidationError({
+                'exchange_rate': 'Es obligatorio cargar el tipo de cambio cuando '
+                                 'la moneda es USD.'
+            })
+        return attrs
 
 
 class VehicleListSerializer(serializers.ModelSerializer):

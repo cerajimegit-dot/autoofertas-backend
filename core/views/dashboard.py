@@ -828,14 +828,15 @@ class DashboardViewSet(viewsets.ViewSet):
             extras_total = Decimal('0')
             has_usd_sin_tc = False
             for vc in costs_by_vehicle.get(veh.id, []):
-                if vc.currency == 'USD':
-                    # Si no tenemos forma fácil de convertir, ignoramos y
-                    # marcamos el warning. El servicio podría llamar a
-                    # ExchangeRate.current, pero eso depende del modelo —
-                    # lo dejamos para una iteración futura.
+                # Usamos el property amount_pyg que ya hace la conversión
+                # USD * TC si ambos están seteados, o devuelve None si USD
+                # quedó sin TC (data legacy). Para los nuevos VehicleCost
+                # el clean() ya impide que se cargue USD sin TC.
+                in_pyg = vc.amount_pyg
+                if in_pyg is None:
                     has_usd_sin_tc = True
                     continue
-                extras_total += vc.amount or 0
+                extras_total += in_pyg
             if has_usd_sin_tc:
                 warnings_count += 1
             costo_total = base_cost + extras_total

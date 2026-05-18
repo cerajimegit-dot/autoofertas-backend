@@ -46,4 +46,22 @@ class CashMovementSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 'amount': 'El monto debe ser positivo. La dirección (ingreso/egreso) define el signo.'
             })
+
+        # USD obliga a cargar TC + monto USD original. Replica del clean()
+        # del modelo, expuesto como field errors de DRF (400 en lugar de 500).
+        def get(field):
+            return attrs.get(field, getattr(self.instance, field, None))
+        if get('currency') == 'USD':
+            errors = {}
+            if not get('exchange_rate'):
+                errors['exchange_rate'] = (
+                    'Es obligatorio cargar el tipo de cambio cuando la moneda es USD.'
+                )
+            if not get('amount_usd'):
+                errors['amount_usd'] = (
+                    'Es obligatorio cargar el monto en USD original cuando '
+                    'la moneda es USD.'
+                )
+            if errors:
+                raise serializers.ValidationError(errors)
         return attrs

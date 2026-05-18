@@ -305,10 +305,23 @@ class Vehicle(models.Model):
     def __str__(self):
         return f"{self.brand} {self.model} {self.year} - VIN: {self.vin}"
     
-    def save(self, *args, **kwargs):
-        # Validar que si la moneda es USD, debe haber cotización
+    def clean(self):
+        """Validación a nivel de modelo. La sube DRF como 400 en la API.
+
+        ValueError (lo que había antes) escapa como 500 con stacktrace
+        feo. ValidationError es lo que Django/DRF esperan.
+        """
+        from django.core.exceptions import ValidationError
         if self.currency == 'USD' and not self.exchange_rate:
-            raise ValueError("Debe proporcionar una cotización para precios en USD")
+            raise ValidationError({
+                'exchange_rate': 'Es obligatorio cargar el tipo de cambio cuando '
+                                 'el precio está en USD.'
+            })
+
+    def save(self, *args, **kwargs):
+        # Mantengo la validación en save por compat (admin, scripts) — pero
+        # también vía clean() para que DRF la atrape antes.
+        self.clean()
         super().save(*args, **kwargs)
 
 
@@ -352,6 +365,17 @@ class VehicleCost(models.Model):
         default='PYG',
         verbose_name=_('Moneda'),
     )
+    # Tipo de cambio aplicado cuando el monto está en USD. Lo guardamos
+    # como DecimalField (no FK a ExchangeRate) para que el costo quede
+    # congelado al TC del momento — si después cambia la cotización
+    # vigente, el costo histórico no se mueve.
+    exchange_rate = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        verbose_name=_('Tipo de cambio'),
+        help_text=_('Obligatorio si moneda=USD. Se usa para calcular el '
+                    'equivalente en PYG en el análisis de margen.'),
+    )
     notes = models.TextField(blank=True, verbose_name=_('Notas'))
     order = models.IntegerField(default=0, verbose_name=_('Orden'))
 
@@ -368,3 +392,22 @@ class VehicleCost(models.Model):
 
     def __str__(self):
         return f"{self.vehicle_id} - {self.concept}: {self.amount} {self.currency}"
+
+    @property
+    def amount_pyg(self):
+        """Monto en guaraníes. Si currency=USD usa el TC guardado;
+        si currency=PYG devuelve amount tal cual. Si USD sin TC, devuelve
+        None (el llamador debe interpretar como "incomputable")."""
+        if self.currency == 'PYG':
+            return self.amount or 0
+        if self.currency == 'USD' and self.exchange_rate:
+            return (self.amount or 0) * self.exchange_rate
+        return None
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.currency == 'USD' and not self.exchange_rate:
+            raise ValidationError({
+                'exchange_rate': 'Es obligatorio cargar el tipo de cambio cuando '
+                                 'el monto está en USD.'
+            })

@@ -139,6 +139,28 @@ class CashMovement(models.Model):
         signo = '+' if self.direction == 'in' else '-'
         return f'{self.date} {signo}{self.amount} {self.kind}'
 
+    def clean(self):
+        """Si currency=USD, exchange_rate y amount_usd deben venir."""
+        from django.core.exceptions import ValidationError
+        if self.currency == 'USD':
+            missing = {}
+            if not self.exchange_rate:
+                missing['exchange_rate'] = (
+                    'Es obligatorio cargar el tipo de cambio cuando '
+                    'la moneda es USD.'
+                )
+            if not self.amount_usd:
+                missing['amount_usd'] = (
+                    'Es obligatorio cargar el monto en USD original cuando '
+                    'la moneda es USD.'
+                )
+            if missing:
+                raise ValidationError(missing)
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
     @property
     def signed_amount(self):
         """Devuelve el monto con signo (positivo si ingreso, negativo si egreso)."""
