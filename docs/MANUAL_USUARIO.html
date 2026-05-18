@@ -4,677 +4,247 @@
 <meta charset="UTF-8">
 <title>Manual de uso — AUTO OFERTAS</title>
 <style>
-    /* Estilos optimizados para abrir en Microsoft Word.
-       Fonts seguros, layout simple, sin features modernas. */
-    @page { size: A4; margin: 2cm; }
+    @page { size: A4; margin: 1.5cm; }
     body {
         font-family: "Calibri", "Segoe UI", "Arial", sans-serif;
-        font-size: 11pt;
+        font-size: 10pt;
         color: #1f2937;
-        line-height: 1.5;
-        max-width: 800px;
+        line-height: 1.35;
+        max-width: 780px;
         margin: 0 auto;
-        padding: 16px;
+        padding: 10px;
     }
     h1 {
-        font-size: 26pt;
+        font-size: 20pt;
         color: #dc2626;
         border-bottom: 2px solid #dc2626;
-        padding-bottom: 8px;
-        margin-top: 0;
+        padding-bottom: 4px;
+        margin: 0 0 6px;
     }
     h2 {
-        font-size: 18pt;
+        font-size: 13pt;
         color: #1f2937;
-        margin-top: 36px;
+        margin: 18px 0 4px;
         border-bottom: 1px solid #e5e7eb;
-        padding-bottom: 4px;
+        padding-bottom: 2px;
         page-break-after: avoid;
     }
     h3 {
-        font-size: 14pt;
+        font-size: 11pt;
         color: #374151;
-        margin-top: 22px;
+        margin: 10px 0 3px;
         page-break-after: avoid;
     }
-    p, li {
-        margin: 8px 0;
-    }
+    p, li { margin: 3px 0; }
     blockquote {
         background: #f9fafb;
-        border-left: 4px solid #6b7280;
-        margin: 12px 0;
-        padding: 8px 12px;
+        border-left: 3px solid #6b7280;
+        margin: 6px 0;
+        padding: 4px 8px;
         color: #4b5563;
-        font-size: 10pt;
+        font-size: 9pt;
     }
-    blockquote.warning {
-        background: #fef3c7;
-        border-left-color: #d97706;
-        color: #78350f;
-    }
-    blockquote.danger {
-        background: #fee2e2;
-        border-left-color: #dc2626;
-        color: #7f1d1d;
-    }
-    blockquote.tip {
-        background: #dbeafe;
-        border-left-color: #2563eb;
-        color: #1e3a8a;
-    }
+    blockquote.warn { background: #fef3c7; border-left-color: #d97706; color: #78350f; }
+    blockquote.danger { background: #fee2e2; border-left-color: #dc2626; color: #7f1d1d; }
+    blockquote.tip { background: #dbeafe; border-left-color: #2563eb; color: #1e3a8a; }
     code {
         font-family: "Consolas", "Courier New", monospace;
         background: #f3f4f6;
-        padding: 1px 5px;
-        border-radius: 3px;
-        font-size: 10pt;
+        padding: 1px 4px;
+        border-radius: 2px;
+        font-size: 9pt;
         color: #b91c1c;
     }
     pre {
-        background: #1f2937;
-        color: #f9fafb;
-        padding: 12px;
-        border-radius: 4px;
-        overflow-x: auto;
+        background: #1f2937; color: #f9fafb;
+        padding: 8px; border-radius: 3px;
         font-family: "Consolas", "Courier New", monospace;
-        font-size: 9pt;
-        line-height: 1.4;
+        font-size: 8.5pt; line-height: 1.3;
     }
-    pre code {
-        background: transparent;
-        color: inherit;
-        padding: 0;
-    }
+    pre code { background: transparent; color: inherit; padding: 0; }
     img {
         max-width: 100%;
-        height: auto;
+        max-height: 350px;
         border: 1px solid #e5e7eb;
-        border-radius: 4px;
-        margin: 12px 0;
+        border-radius: 3px;
+        margin: 6px 0;
         display: block;
         page-break-inside: avoid;
     }
     table {
         border-collapse: collapse;
         width: 100%;
-        margin: 12px 0;
-        font-size: 10pt;
+        margin: 6px 0;
+        font-size: 9pt;
         page-break-inside: avoid;
     }
-    th, td {
-        border: 1px solid #d1d5db;
-        padding: 6px 10px;
-        text-align: left;
-        vertical-align: top;
-    }
-    th {
-        background: #f3f4f6;
-        font-weight: 600;
-    }
-    hr {
-        border: none;
-        border-top: 1px solid #d1d5db;
-        margin: 28px 0;
-    }
-    ul, ol { padding-left: 24px; }
+    th, td { border: 1px solid #d1d5db; padding: 3px 6px; text-align: left; vertical-align: top; }
+    th { background: #f3f4f6; font-weight: 600; }
+    hr { border: none; border-top: 1px solid #d1d5db; margin: 14px 0; }
+    ul, ol { padding-left: 18px; margin: 4px 0; }
     strong { color: #111827; }
-    a { color: #2563eb; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .toc {
-        background: #f9fafb;
-        padding: 12px 18px;
-        border-radius: 4px;
-        border: 1px solid #e5e7eb;
-    }
-    .toc ol { margin: 0; padding-left: 22px; }
-    .image-missing {
-        display: block;
-        padding: 30px;
-        background: #f3f4f6;
-        color: #6b7280;
-        text-align: center;
-        font-style: italic;
-        border: 2px dashed #d1d5db;
-        margin: 12px 0;
-    }
-    /* Instrucciones de Word visibles en la versión HTML */
-    .word-instructions {
-        background: #ecfdf5;
-        border: 1px solid #10b981;
-        padding: 12px 16px;
-        margin-bottom: 24px;
-        border-radius: 4px;
-        font-size: 10pt;
-    }
-    .word-instructions h3 {
-        margin: 0 0 6px 0;
-        color: #065f46;
-    }
-    @media print { .word-instructions { display: none; } }
+    .lead { color: #6b7280; margin-bottom: 8px; font-size: 9.5pt; }
+    .toc { font-size: 9pt; color: #6b7280; margin: 6px 0 14px; }
+    .toc a { color: #2563eb; text-decoration: none; }
 </style>
 </head>
 <body>
 
-<div class="word-instructions">
-    <h3>📄 Cómo abrir este manual en Microsoft Word</h3>
-    <ol style="margin-bottom: 0;">
-        <li>Asegurate que la carpeta <code>imagenes/</code> esté al lado de este archivo HTML y contenga las capturas (ver tabla al final).</li>
-        <li>En Word: <strong>Archivo → Abrir → seleccionar <code>MANUAL_USUARIO.html</code></strong>.</li>
-        <li>Word te muestra el documento con las imágenes ya incrustadas.</li>
-        <li>Para guardarlo como <code>.docx</code>: <strong>Archivo → Guardar como → Documento de Word (.docx)</strong>.</li>
-    </ol>
-    <p style="margin: 8px 0 0 0; font-size: 9pt; color: #064e3b;">
-        Si una imagen sale como cuadro vacío "imagen no disponible", significa que el archivo PNG no está en <code>imagenes/</code>. Guardalo desde el chat con el nombre exacto indicado.
-    </p>
-</div>
-
 <h1>Manual de uso — AUTO OFERTAS</h1>
+<p class="lead">Sistema de gestión de la playa de autos. Multi-sucursal: clientes, vehículos, ventas, cuotas, cobranzas y flujo de caja.</p>
 
-<p>Sistema de gestión de la playa de autos. Multi-sucursal, con clientes, vehículos, ventas, cuotas, cobranzas y flujo de caja.</p>
-
-<blockquote>Este manual cubre lo que está <strong>publicado en producción hoy</strong>. Hay mejoras adicionales en <code>staging</code> que se incorporarán en el próximo deploy y serán documentadas después.</blockquote>
-
-<hr>
-
-<h2>Índice</h2>
 <div class="toc">
-<ol>
-    <li><a href="#s1">Cómo entrar y salir del sistema</a></li>
-    <li><a href="#s2">La pantalla principal</a></li>
-    <li><a href="#s3">Cargar un vehículo nuevo</a></li>
-    <li><a href="#s4">Cargar un cliente nuevo</a></li>
-    <li><a href="#s5">Registrar una venta</a></li>
-    <li><a href="#s6">Generar el plan de cuotas</a></li>
-    <li><a href="#s7">Cobrar una cuota</a></li>
-    <li><a href="#s8">Mandar recordatorio por WhatsApp</a></li>
-    <li><a href="#s9">Movimientos de caja</a></li>
-    <li><a href="#s10">Casos comunes a resolver</a></li>
-    <li><a href="#s11">Atajos y tips</a></li>
-</ol>
+<strong>Contenido:</strong>
+<a href="#s1">1. Login</a> ·
+<a href="#s2">2. Dashboard</a> ·
+<a href="#s3">3. Vehículos</a> ·
+<a href="#s4">4. Clientes</a> ·
+<a href="#s5">5. Ventas</a> ·
+<a href="#s6">6. Cuotas</a> ·
+<a href="#s7">7. Cobrar</a> ·
+<a href="#s8">8. WhatsApp</a> ·
+<a href="#s9">9. Caja</a> ·
+<a href="#s10">10. Casos comunes</a> ·
+<a href="#s11">11. Atajos</a>
 </div>
 
-<hr>
+<h2 id="s1">1. Entrar y salir</h2>
+<img src="imagenes/01-login.png" alt="Login">
+<p>Tipeá <strong>usuario</strong> y <strong>contraseña</strong>. Tras 5 errores en un minuto, el sistema bloquea unos minutos.</p>
+<p>Para salir: clic en el círculo con tu inicial (arriba a la derecha) → <strong>Cerrar sesión</strong>.</p>
+<img src="imagenes/01-logout.png" alt="Menú de usuario">
 
-<h2 id="s1">1. Cómo entrar y salir del sistema</h2>
+<h2 id="s2">2. Dashboard</h2>
+<img src="imagenes/02-dashboard.png" alt="Dashboard">
+<p>Resumen del negocio: <strong>Vehículos</strong> (total + disponibles), <strong>Ventas del período</strong>, <strong>Cobrado del período</strong>, <strong>Cartera vencida</strong>.</p>
+<p>Barra lateral: 📊 Dashboard · 🚗 Vehículos · 💰 Ventas · 👥 Clientes · 📋 Cuotas · 💵 Flujo de caja · ⚙️ Usuarios (solo admin).</p>
+<p>Arriba al medio: <strong>selector de sucursal</strong> (filtra todas las pantallas). Arriba: <strong>filtro de fechas</strong> con quick ranges (Este mes / Mes anterior / Este año / Año anterior).</p>
 
-<img src="imagenes/01-login.png" alt="Pantalla de login">
+<h2 id="s3">3. Cargar un vehículo</h2>
+<p>Vehículos → <strong>+ Nuevo vehículo</strong> (solo admin).</p>
+<img src="imagenes/03-vehiculos-lista.png" alt="Vehículos">
+<p><strong>Obligatorios:</strong> Marca, Modelo, Año, VIN (único), Precio + Moneda (PYG/USD), FOB / Container / Despacho / Cam-Vol (poner 0 si no se conocen).</p>
+<p><strong>Opcionales:</strong> Patente, color, kilometraje, conceptos extras de costo (flete, patente, honorarios, etc.), descripción.</p>
+<blockquote class="tip">💡 El <strong>costo total</strong> = FOB + Container + Despacho + Cam-Vol + extras (calculado automáticamente).</blockquote>
 
-<p>Entrá al sitio y tipeá <strong>usuario</strong> y <strong>contraseña</strong>. Si los datos son correctos vas directo al panel principal. Si te equivocaste 5 veces en un minuto, el sistema te bloquea unos minutos para evitar intentos maliciosos — esperá y volvé a probar.</p>
-
-<p>Para salir, hacé clic en el círculo con tu inicial arriba a la derecha y elegí <strong>"Cerrar sesión"</strong>.</p>
-
-<img src="imagenes/01-logout.png" alt="Menú de usuario abierto">
-
-<hr>
-
-<h2 id="s2">2. La pantalla principal</h2>
-
-<img src="imagenes/02-dashboard.png" alt="Dashboard completo">
-
-<p>Apenas entrás, ves el <strong>dashboard</strong> con un resumen del negocio:</p>
-<ul>
-    <li><strong>Vehículos</strong>: total y disponibles en stock.</li>
-    <li><strong>Ventas del período</strong>: cantidad y monto.</li>
-    <li><strong>Cobrado del período</strong>: cuántas cuotas y por qué monto.</li>
-    <li><strong>Cartera vencida</strong>: cuotas que ya pasaron de fecha sin cobrar.</li>
-</ul>
-
-<p>Arriba a la izquierda está la <strong>barra lateral</strong> con todas las secciones:</p>
-<ul>
-    <li>📊 Dashboard</li>
-    <li>🚗 Vehículos</li>
-    <li>💰 Ventas</li>
-    <li>👥 Clientes</li>
-    <li>📋 Cuotas</li>
-    <li>💵 Flujo de caja</li>
-    <li>⚙️ Usuarios (solo admin)</li>
-</ul>
-
-<p>Arriba al medio aparece el <strong>selector de sucursal</strong> (sólo si tu empresa tiene más de una). Cuando elegís una, todas las pantallas filtran por ella. "Todas" muestra el agregado de las dos sucursales.</p>
-
-<blockquote>Nota: el dropdown del selector de sucursal es nativo del navegador y se renderiza a nivel del sistema operativo, por lo que no aparece en capturas de pantalla del browser. En la imagen del dashboard ya se ve el botón con "CASA CENTRAL" como sucursal activa.</blockquote>
-
-<h3>Filtro de período</h3>
-
-<p>En la parte superior del dashboard hay un filtro de <strong>fechas</strong> (desde / hasta) con accesos rápidos: Este mes, Mes anterior, Este año, Año anterior. Todos los KPIs respetan ese período.</p>
-
-<hr>
-
-<h2 id="s3">3. Cargar un vehículo nuevo</h2>
-
-<p>Andá a <strong>🚗 Vehículos</strong> en la barra lateral y hacé clic en <strong>"+ Nuevo vehículo"</strong>.</p>
-
-<img src="imagenes/03-vehiculos-lista.png" alt="Inventario de vehículos con chips de calidad">
-
-<blockquote>Nota: el botón <strong>"+ Nuevo vehículo"</strong> sólo aparece para usuarios con rol <strong>administrador</strong>. Los vendedores ven la lista en modo lectura.</blockquote>
-
-<p>Campos obligatorios:</p>
-<ul>
-    <li><strong>Marca</strong>: elegí del dropdown. Si no está, usá el botón verde <strong>+</strong> al lado para crearla.</li>
-    <li><strong>Modelo</strong>: depende de la marca elegida.</li>
-    <li><strong>Año</strong>: año del vehículo (ej. 2018).</li>
-    <li><strong>VIN</strong>: el código único del chasis. <strong>No se puede repetir</strong> en el sistema.</li>
-    <li><strong>Precio</strong> y <strong>Moneda</strong> (PYG o USD).</li>
-    <li><strong>FOB / Container / Despacho / Cam-Vol</strong>: los 4 costos estándar de importación. Si no los tenés todavía, dejá 0 y completalos después desde "Editar".</li>
-</ul>
-
-<p>Opcionales:</p>
-<ul>
-    <li>Patente, color, kilometraje.</li>
-    <li><strong>Conceptos extras de costo</strong>: si tuviste flete interno, patente, honorarios o cualquier otro gasto que no entra en los 4 estándar, agregalos abajo con el botón "+". Cada uno con concepto + monto + moneda.</li>
-    <li>Descripción libre.</li>
-</ul>
-
-<blockquote class="tip">💡 <strong>Tip</strong>: el <strong>costo total</strong> del vehículo se calcula automáticamente sumando FOB + Container + Despacho + Cam-Vol + extras. Lo ves en la vista de detalle.</blockquote>
-
-<p>Clic en <strong>"Crear vehículo"</strong>. Vuelve a la lista y el nuevo aparece arriba.</p>
-
-<hr>
-
-<h2 id="s4">4. Cargar un cliente nuevo</h2>
-
-<p>Andá a <strong>👥 Clientes</strong> y hacé clic en <strong>"+ Nuevo cliente"</strong>.</p>
-
-<img src="imagenes/04-cliente-nuevo.png" alt="Modal Nuevo cliente">
-
-<p>Campos obligatorios:</p>
-<ul>
-    <li><strong>Nombre</strong> y <strong>Apellido</strong>.</li>
-    <li><strong>Tipo de documento</strong>: Cédula / RUC / Pasaporte.</li>
-    <li><strong>N° documento</strong>: no se puede repetir en la empresa.</li>
-</ul>
-
-<p>Opcionales pero <strong>muy recomendados</strong>:</p>
-<ul>
-    <li><strong>Teléfono</strong>: sin él no se pueden mandar recordatorios por WhatsApp.</li>
-    <li><strong>Email</strong>: para confirmaciones y resumen mensual.</li>
-    <li><strong>Ciudad</strong> y <strong>Dirección</strong>.</li>
-    <li><strong>Notas</strong>: cualquier observación útil (ej. "prefiere ser contactado al mediodía", "es cliente desde 2018").</li>
-</ul>
-
-<p>Clic en <strong>"Crear cliente"</strong>.</p>
-
-<blockquote class="warning">⚠️ <strong>Si el cliente ya existe</strong> (mismo documento) el sistema te avisa con un error. Andá a la lista, buscalo y editalo en lugar de crearlo duplicado.</blockquote>
-
-<hr>
+<h2 id="s4">4. Cargar un cliente</h2>
+<p>Clientes → <strong>+ Nuevo cliente</strong>.</p>
+<img src="imagenes/04-cliente-nuevo.png" alt="Nuevo cliente">
+<p><strong>Obligatorios:</strong> Nombre, Apellido, Tipo de doc (CI/RUC/Pasaporte), N° documento (único en la empresa).</p>
+<p><strong>Recomendados:</strong> Teléfono (necesario para WhatsApp), Email, Ciudad, Dirección, Notas.</p>
+<blockquote class="warn">⚠ Si el documento ya existe el sistema avisa con error. Buscá y editá en lugar de duplicar.</blockquote>
 
 <h2 id="s5">5. Registrar una venta</h2>
-
-<img src="imagenes/05-ventas-lista.png" alt="Lista de ventas con chips de calidad">
-
-<p>Andá a <strong>💰 Ventas</strong> y hacé clic en <strong>"+ Nueva venta"</strong>.</p>
-
-<img src="imagenes/05-venta-nueva.png" alt="Modal Nueva venta">
-
-<p>Pasos:</p>
+<img src="imagenes/05-ventas-lista.png" alt="Ventas">
+<p>Ventas → <strong>+ Nueva venta</strong>.</p>
+<img src="imagenes/05-venta-nueva.png" alt="Nueva venta">
 <ol>
-    <li><strong>Cliente</strong>: buscalo escribiendo en el campo (nombre / documento / teléfono). Si no existe, hacé clic en <strong>"+ Nuevo cliente"</strong> y se abre el formulario para crearlo sin perder los datos de la venta.</li>
-    <li><strong>Vehículo</strong>: elegí uno del stock disponible. Igual que con cliente, podés crear uno nuevo desde el botón.</li>
-    <li><strong>N° de venta</strong>: convención típica <code>CM/26-001</code> (Cerrada Mes-año-número) o <code>MC/26-001</code> para Mixto. Si lo dejás vacío el sistema asigna <code>??/26-001</code> que después podés corregir.</li>
-    <li><strong>Fecha de venta</strong>: por default hoy.</li>
-    <li><strong>Forma de pago</strong>: Contado, Crédito o Mixto.</li>
-    <li><strong>Entrega inicial</strong> (seña): sólo si Crédito/Mixto. Es el monto que el cliente paga al momento de la venta.</li>
+<li><strong>Cliente</strong>: buscalo por nombre/doc/teléfono. Si no existe, "+ Nuevo cliente" sin perder los datos.</li>
+<li><strong>Vehículo</strong>: del stock disponible (o crear uno).</li>
+<li><strong>N° de venta</strong>: <code>CM/26-001</code> (Cerrada) o <code>MC/26-001</code> (Mixto). Si dejás vacío queda <code>??/26-001</code>.</li>
+<li><strong>Fecha</strong>, <strong>Forma de pago</strong> (Contado/Crédito/Mixto), <strong>Entrega inicial</strong> si aplica.</li>
 </ol>
 
-<p>Clic en <strong>"Crear venta"</strong>.</p>
+<h2 id="s6">6. Plan de cuotas</h2>
+<p>Desde Ventas → ícono 📋 de la fila → modal "Cuotas de la venta CM/26-XXX".</p>
+<img src="imagenes/06-cuotas-modal.png" alt="Cuotas modal">
+<p>Sección "Generar plan de cuotas": cantidad, 1er vencimiento, monto por cuota (autocalculado), nombre del plan (opcional) → <strong>🎯 Generar preview</strong>.</p>
+<p>Verificá: suma cuadra con (total − seña), fechas correctas. → <strong>💾 Guardar cuotas</strong>.</p>
+<blockquote class="warn">⚠ Si ya hay cuotas y querés agregar más, escribí encima del modelo "Cuotas existentes".</blockquote>
 
-<blockquote class="tip">💡 Si la venta es a <strong>Crédito</strong>, después del create vas a querer generar el plan de cuotas. Ver siguiente sección.</blockquote>
+<h2 id="s7">7. Cobrar cuota</h2>
+<p>Dos caminos: <strong>desde el modal de cuotas de la venta</strong> o <strong>desde el detalle del cliente</strong>.</p>
+<img src="imagenes/07-cuotas-tabla.png" alt="Cuotas tabla">
+<p>En la fila de la cuota → <strong>💵 Pagar</strong> → modal:</p>
+<img src="imagenes/07-pagar-modal.png" alt="Modal pagar">
+<p>Completá fecha de pago, forma (Efectivo / Transferencia / Caja / Acuerdo), nota opcional → <strong>Confirmar pago</strong>.</p>
+<blockquote class="tip">💡 El cobro genera automáticamente el movimiento de ingreso en flujo de caja.</blockquote>
+<p>Desde Clientes → click en el cliente: ves todo su historial.</p>
+<img src="imagenes/07-cliente-detalle.png" alt="Detalle cliente">
 
-<hr>
-
-<h2 id="s6">6. Generar el plan de cuotas</h2>
-
-<p>Desde <strong>💰 Ventas</strong> hacé clic en el ícono de cuotas (📋) de la fila de tu venta. Se abre el modal <strong>"Cuotas de la venta CM/26-XXX"</strong>.</p>
-
-<img src="imagenes/06-cuotas-modal.png" alt="Modal de cuotas de una venta">
-
-<p>Abajo del modal, en la sección <strong>"Generar plan de cuotas"</strong>, completá:</p>
+<h2 id="s8">8. WhatsApp</h2>
+<p>En el detalle del cliente o en cada cuota: botón verde <strong>💬 WhatsApp</strong>. El sistema:</p>
 <ul>
-    <li><strong>Cantidad de cuotas</strong>: ej. 12, 18, 24.</li>
-    <li><strong>1er vencimiento</strong>: usualmente 30 días después de la venta.</li>
-    <li><strong>Monto por cuota</strong>: el sistema te sugiere uno calculado (total − seña / cantidad). Lo podés ajustar.</li>
-    <li><strong>Nombre del plan</strong> (opcional): ej. "Plan 12 meses sin interés".</li>
+<li>Normaliza el teléfono a formato internacional (<code>0981...</code> → <code>595981...</code>).</li>
+<li>Arma el mensaje pre-formateado:
+<blockquote>"Buen día Juan, le recordamos la cuota N°3 con vencimiento 15/05/2026 por Gs. 1.500.000. Cualquier consulta estamos a las órdenes. AUTO OFERTAS."</blockquote>
+</li>
+<li>Abre WhatsApp Web/app con el mensaje listo. Solo apretás enviar.</li>
 </ul>
+<blockquote class="warn">⚠ Cliente sin teléfono → el botón no aparece. Editar primero.</blockquote>
 
-<p>Clic en <strong>"🎯 Generar preview"</strong>. Vas a ver una lista con las N cuotas proyectadas.</p>
-
-<p>Verificá que:</p>
-<ul>
-    <li>✅ La <strong>suma total</strong> del preview cuadra con el monto a financiar (sale.total − seña).</li>
-    <li>✅ Las <strong>fechas</strong> son correctas (1 cuota por mes en general).</li>
-</ul>
-
-<p>Si está bien, clic en <strong>"💾 Guardar cuotas"</strong> y se crean en el sistema. Si necesitás ajustar, cambiá los inputs y dale otra vez a "Generar preview".</p>
-
-<blockquote class="warning">⚠️ Si <strong>ya tenés cuotas</strong> y querés agregar más (planes parciales tipo "primero 6 cuotas, después negociar otras 6"), el sistema lo permite — sólo escribe encima del modelo "Cuotas existentes".</blockquote>
-
-<hr>
-
-<h2 id="s7">7. Cobrar una cuota</h2>
-
-<p>Hay 2 caminos:</p>
-
-<h3>A. Desde el modal de cuotas de una venta</h3>
-
-<p>En la tabla de cuotas, fila por fila, vas a ver el botón <strong>"💵 Pagar"</strong> en las cuotas que están pendientes.</p>
-
-<img src="imagenes/07-cuotas-tabla.png" alt="Tabla de cuotas con botones Pagar">
-
-<p>Hacé clic y se abre el formulario:</p>
-
-<img src="imagenes/07-pagar-modal.png" alt="Modal Registrar pago">
-
-<p>Completá:</p>
-<ul>
-    <li><strong>Fecha de pago</strong>: hoy por default.</li>
-    <li><strong>Forma de pago</strong>: Efectivo / Transferencia bancaria / Caja / Acuerdo.</li>
-    <li><strong>Notas</strong> (opcional): ej. "Pagó con USD al cambio del día".</li>
-</ul>
-
-<p>Clic en <strong>"Confirmar pago"</strong>.</p>
-
-<blockquote class="tip">💡 Cuando cobrás una cuota, el sistema <strong>automáticamente</strong> genera un movimiento de ingreso en el flujo de caja. No tenés que cargarlo a mano.</blockquote>
-
-<h3>B. Desde el detalle del cliente</h3>
-
-<p>Andá a <strong>👥 Clientes</strong> → buscalo → clic en su nombre. Ves todas sus ventas y cuotas. La columna "Acción" tiene el mismo botón "💵 Pagar".</p>
-
-<p>Esta vista es más cómoda cuando vino el cliente al local y querés revisar todo su historial al mismo tiempo.</p>
-
-<img src="imagenes/07-cliente-detalle.png" alt="Detalle de un cliente">
-
-<hr>
-
-<h2 id="s8">8. Mandar recordatorio por WhatsApp</h2>
-
-<p>Si una cuota está cerca del vencimiento o ya venció, podés mandarle recordatorio al cliente con un click.</p>
-
-<p>En el detalle del cliente (sección 7) se ve el botón <strong>"💬 WhatsApp"</strong> verde arriba a la derecha que cumple la función de mandar mensaje al cliente. También aparece en cada cuota individual.</p>
-
-<p>El sistema:</p>
-<ol>
-    <li><strong>Normaliza</strong> el teléfono del cliente al formato internacional (<code>0981123456</code> → <code>595981123456</code>).</li>
-    <li><strong>Arma el mensaje</strong> en español:
-        <blockquote>"Buen día Juan, le recordamos la cuota N°3 con vencimiento 15/05/2026 por Gs. 1.500.000. Cualquier consulta estamos a las órdenes. AUTO OFERTAS."</blockquote>
-    </li>
-    <li>Abre <strong>WhatsApp Web / app</strong> con el mensaje listo. Sólo tenés que apretar enviar.</li>
-</ol>
-
-<blockquote class="warning">⚠️ Si el cliente <strong>no tiene teléfono cargado</strong>, el botón no aparece. Tenés que editarlo primero para agregar el número.</blockquote>
-
-<hr>
-
-<h2 id="s9">9. Movimientos de caja</h2>
-
-<p>Andá a <strong>💵 Flujo de caja</strong>.</p>
-
-<img src="imagenes/09-flujo-caja.png" alt="Flujo de caja: KPIs + distribución + tabla">
-
-<p>Hay 3 KPIs arriba:</p>
-<ul>
-    <li><strong>Ingresos</strong> del período (verde).</li>
-    <li><strong>Egresos</strong> del período (rojo).</li>
-    <li><strong>Saldo neto</strong> (verde si positivo, rojo si negativo).</li>
-</ul>
-
-<p>Y abajo, la tabla con cada movimiento del período. Los movimientos <strong>generados automáticamente</strong> (cobros de cuotas, señas, ventas contado) aparecen marcados con ⚙ auto — esos no se pueden borrar a mano, se ajustan automáticamente cuando cambias la venta o cuota original.</p>
-
-<p>Los movimientos <strong>manuales</strong> se cargan con el botón <strong>"+ Nuevo movimiento"</strong>:</p>
-
-<img src="imagenes/09-nuevo-movimiento.png" alt="Modal Nuevo movimiento">
-
-<p>Completá:</p>
-<ul>
-    <li><strong>Fecha</strong>, <strong>Sucursal</strong>.</li>
-    <li><strong>Tipo</strong>: Cobro de cuota / Venta contado / Seña / Pago a cuenta / Gasto / Alquiler / Sueldo / Comisión / Compra al exterior / Transporte / Impuesto / Ajuste / Otro.</li>
-    <li><strong>Dirección</strong>: Ingreso (verde) o Egreso (rojo).</li>
-    <li><strong>Monto</strong> en Gs (o USD con tipo de cambio).</li>
-    <li><strong>Operación</strong>: descripción libre, ej. "PAGO DE ALQUILER FEBRERO/26".</li>
-    <li><strong>Proveedor</strong> (opcional, útil para compras al exterior: AUTOWINI, DADANI, etc.).</li>
-</ul>
-
-<p>Clic en <strong>"Crear"</strong>.</p>
-
-<blockquote class="tip">💡 <strong>Filtros de período rápidos</strong> arriba: Este mes / Mes anterior / Este año / Año anterior. Útiles cuando el contador te pide "el flujo de mayo".</blockquote>
-
-<hr>
+<h2 id="s9">9. Flujo de caja</h2>
+<img src="imagenes/09-flujo-caja.png" alt="Flujo de caja">
+<p>Tres KPIs: <strong>Ingresos</strong> (verde), <strong>Egresos</strong> (rojo), <strong>Saldo neto</strong>. La tabla lista cada movimiento del período. Los "⚙ auto" (cobros de cuotas, señas, ventas contado) NO se borran a mano — se ajustan cambiando la venta/cuota de origen.</p>
+<p>Movimientos manuales: <strong>+ Nuevo movimiento</strong>.</p>
+<img src="imagenes/09-nuevo-movimiento.png" alt="Nuevo movimiento">
+<p>Tipos: Cobro de cuota / Venta contado / Seña / Pago a cuenta / Gasto / Alquiler / Sueldo / Comisión / Compra al exterior / Transporte / Impuesto / Ajuste / Otro. Dirección: Ingreso (verde) o Egreso (rojo). Proveedor opcional (AUTOWINI, DADANI, etc.).</p>
 
 <h2 id="s10">10. Casos comunes a resolver</h2>
 
-<p>A medida que usás el sistema vas a encontrarte con cosas para arreglar. Acá los casos típicos y cómo proceder.</p>
-
 <h3>10.1. Cuotas vencidas sin pagar</h3>
-
-<p><strong>Cómo detectarlas:</strong></p>
-<ul>
-    <li>En el <strong>dashboard</strong> mirá el KPI rojo <strong>"Cartera vencida"</strong> — cantidad y monto total.</li>
-    <li>En el dashboard también hay un panel <strong>"Clientes morosos (top 15)"</strong>. Cada cliente moroso linkea a su detalle.</li>
-</ul>
-
-<img src="imagenes/10-morosos.png" alt="Panel Clientes morosos del dashboard">
-
-<ul>
-    <li>En <strong>📋 Cuotas</strong> podés filtrar por <strong>estado = Vencidas</strong> para ver todas las cuotas atrasadas.</li>
-</ul>
-
-<p><strong>Qué hacer:</strong></p>
+<p><strong>Detectar:</strong> KPI rojo "Cartera vencida" del dashboard, panel "Clientes morosos" (top 15), o filtrar Cuotas por estado = Vencidas.</p>
+<img src="imagenes/10-morosos.png" alt="Clientes morosos">
+<p><strong>Acción:</strong></p>
 <ol>
-    <li><strong>Contactar al cliente</strong>: usá el botón <strong>📱 WhatsApp</strong> de la cuota con el mensaje preformateado.</li>
-    <li>Si el cliente <strong>vino y pagó</strong>: registrá el cobro con el botón <strong>💵 Pagar</strong> (sección 7). El sistema actualiza automáticamente el saldo y el flujo de caja.</li>
-    <li>Si el cliente <strong>pidió posponer</strong>: editá la cuota cambiando el <strong>vencimiento</strong> a la nueva fecha. La cuota deja de aparecer como vencida hasta que pase la nueva fecha.</li>
-    <li>Si el cliente <strong>no responde</strong> después de 2-3 intentos: marcá el caso en las <strong>notas del cliente</strong> ("3 mensajes sin respuesta el X/Y/Z") y considerá acciones legales.</li>
+<li>Contactar al cliente con 📱 WhatsApp (mensaje pre-formateado).</li>
+<li>Si pagó → 💵 Pagar → registrar cobro.</li>
+<li>Si pidió posponer → editar la cuota cambiando el vencimiento.</li>
+<li>Si no responde tras 2-3 intentos → anotar en notas del cliente y considerar acción legal.</li>
 </ol>
-
-<blockquote class="danger">⚠️ <strong>NO</strong> "marques pagada" una cuota si no recibiste el dinero. Eso rompe el flujo de caja y los reportes.</blockquote>
+<blockquote class="danger">⚠ NO "marques pagada" una cuota sin recibir el dinero. Rompe el flujo de caja y los reportes.</blockquote>
 
 <h3>10.2. Ventas sin cliente</h3>
-
-<p>Pasa por:</p>
-<ul>
-    <li>Importaciones viejas que no asociaron la venta a una persona.</li>
-    <li>Cargas apuradas donde se olvidó el campo.</li>
-</ul>
-
-<p><strong>Cómo detectarlas:</strong></p>
-
-<p>En <strong>💰 Ventas</strong>, hay chips de calidad arriba de la tabla. Clic en <strong>"⚠ Sin cliente"</strong> para filtrar (ver imagen de la sección 5 — los chips son <strong>Todas / Solo reales / Códigos MIG / Placeholder / Sin cliente / Sin vehículo</strong>).</p>
-
-<p><strong>Cómo arreglarlas:</strong></p>
-<ol>
-    <li>Clic en el ícono de <strong>edición (✏)</strong> de la venta.</li>
-    <li>En el campo <strong>Cliente</strong>, buscá el cliente real (si lo conocés verbalmente — buscá por nombre o documento).</li>
-    <li>Si nunca registraste a esa persona, <strong>creala</strong> desde el mismo modal (botón "+ Nuevo cliente").</li>
-    <li><strong>Guardar</strong>.</li>
-</ol>
-
-<blockquote class="tip">💡 Si <strong>no sabés</strong> quién compró ese auto (caso de migración vieja), dejala con cliente "Cliente General" o creá uno temporal con doc autogenerado, hasta que aclares la duda con el papelerío físico.</blockquote>
+<p><strong>Detectar:</strong> chip <strong>"⚠ Sin cliente"</strong> arriba de Ventas (los chips también incluyen <em>Todas / Solo reales / Códigos MIG / Placeholder / Sin vehículo</em>).</p>
+<p><strong>Arreglar:</strong> editar la venta (✏) → buscar/crear cliente real → Guardar.</p>
+<blockquote class="tip">💡 Si no sabés quién compró (migración vieja), dejar "Cliente General" o crear uno temporal hasta aclarar con el papelerío físico.</blockquote>
 
 <h3>10.3. Ventas con código MIG</h3>
-
-<p>Las ventas migradas de la planilla Excel vieja llegan con números tipo <strong><code>MIG-001</code></strong>, <strong><code>MIG-2018-XX</code></strong>, etc. Eso indica que se importaron desde la planilla histórica.</p>
-
-<p><strong>Qué hacer con ellas:</strong></p>
-<ul>
-    <li>Si la venta está <strong>cerrada y cobrada</strong> y los datos están bien, <strong>dejala como está</strong>. El código <code>MIG</code> solo identifica el origen.</li>
-    <li>Si tiene <strong>datos incompletos</strong> (sin cliente, sin vehículo, fecha rara, monto 0): editala completando lo que falte.</li>
-    <li>Si querés cambiarle el código a uno del formato actual <code>CM/26-001</code>, hacelo desde Editar → campo "N° de venta".</li>
-</ul>
-
-<blockquote class="danger">⚠️ <strong>NO</strong> las borres en masa aunque parezcan basura. Muchas tienen cuotas pendientes de cobro reales — perderías esa cartera.</blockquote>
+<p>Ventas importadas de la planilla Excel vieja (<code>MIG-001</code>, <code>MIG-2018-XX</code>). Si están cerradas y cobradas, dejarlas. Si tienen datos incompletos, completar. Para renombrar al formato actual <code>CM/26-001</code>: editar → "N° de venta".</p>
+<blockquote class="danger">⚠ NO borrar en masa. Muchas tienen cuotas pendientes de cobro reales.</blockquote>
 
 <h3>10.4. Vehículos con VIN basura o sin precio</h3>
-
-<p>Mismo patrón: chips de calidad en <strong>🚗 Vehículos</strong>:</p>
-<ul>
-    <li><strong>"⚠ Sin precio"</strong>: vehículos con price = 0. Editalos y poné el precio real.</li>
-    <li><strong>"⚠ VIN placeholder"</strong>: VIN con formato <code>VIN-DUMMY</code> o <code>VIN12345</code> generado automáticamente. Si conseguís el VIN real, reemplazalo.</li>
-</ul>
-
-<p>Los chips se ven en la imagen de la sección 3 — incluyen <strong>Todos / Sin precio / VIN placeholder</strong>.</p>
+<p>Chips de calidad en Vehículos: <strong>"⚠ Sin precio"</strong> (price = 0) y <strong>"⚠ VIN placeholder"</strong> (<code>VIN-DUMMY</code>, <code>VIN12345</code>). Editar y completar con datos reales.</p>
 
 <h3>10.5. Clientes con documento autogenerado</h3>
-
-<p>Cuando se migró de la planilla vieja, varios clientes quedaron con docs tipo <strong><code>DRV026-001</code></strong>, <strong><code>SUC026-XXX</code></strong> o <strong><code>CUOTA-XX</code></strong> — placeholders que la migración generó porque no se conocía la cédula real.</p>
-
-<p><strong>Cómo detectarlos:</strong></p>
-<p>En <strong>👥 Clientes</strong> → chip <strong>"⚠ Doc autogenerado"</strong>.</p>
-
-<p><strong>Cómo arreglarlos:</strong></p>
-<ol>
-    <li>Clic en el cliente.</li>
-    <li>Pedile la cédula real al cliente (por teléfono o cuando vuelva al local).</li>
-    <li>Editalo: campo "N° documento" con el dato real.</li>
-</ol>
-
-<blockquote class="tip">💡 Estos clientes <strong>funcionan perfectamente</strong> en el sistema; el documento placeholder es sólo cosmético. Reemplazarlo es bueno para reportes y filtros pero no urgente.</blockquote>
+<p>Docs tipo <code>DRV026-001</code>, <code>SUC026-XXX</code>, <code>CUOTA-XX</code> son placeholders de la migración. Chip <strong>"⚠ Doc autogenerado"</strong> los filtra. Cuando consigas la cédula real, editar el cliente.</p>
+<blockquote class="tip">💡 Funcionan perfecto igual; el doc placeholder es solo cosmético. No es urgente.</blockquote>
 
 <h3>10.6. Clientes sin teléfono</h3>
+<p>Chip <strong>"⚠ Sin teléfono"</strong>. Sin él no se puede mandar WhatsApp. Pedí el número cuando venga el cliente.</p>
 
-<p>Chip <strong>"⚠ Sin teléfono"</strong> en /clientes.</p>
-
-<p>Sin teléfono no podés mandar WhatsApp ni llamar para cobranza. Cada vez que el cliente venga, pedí el número y editalo.</p>
-
-<h3>10.7. Una venta tiene los datos equivocados</h3>
-
-<p>(ej. el vendedor cargó el modelo o cliente equivocado)</p>
-
-<ol>
-    <li>En <strong>💰 Ventas</strong>, buscala por número.</li>
-    <li>Clic en <strong>✏ Editar</strong>.</li>
-    <li>Corregí lo que esté mal.</li>
-    <li>Guardar.</li>
-</ol>
-
-<p>Si el cambio incluye el <strong>vehículo</strong>, el sistema libera al vehículo viejo (vuelve a estado "Disponible") y marca al nuevo como "Vendido".</p>
-
-<blockquote class="warning">⚠️ Si cambiás el <strong>monto</strong> de una venta que ya tenía cuotas generadas, las cuotas <strong>NO</strong> se recalculan automáticamente. Tenés que entrar al modal de cuotas y ajustarlas (o borrarlas y regenerar el plan).</blockquote>
+<h3>10.7. Venta con datos equivocados</h3>
+<p>Ventas → buscar → ✏ Editar → corregir → Guardar. Si cambiás el <strong>vehículo</strong>, el sistema libera el viejo (Disponible) y marca el nuevo (Vendido).</p>
+<blockquote class="warn">⚠ Si cambiás el monto de una venta con cuotas existentes, las cuotas NO se recalculan. Hay que entrar al modal y ajustarlas (o borrarlas y regenerar).</blockquote>
 
 <h3>10.8. Borraste algo por error</h3>
-
-<p>El sistema tiene <strong>audit log</strong> que registra todas las acciones (crear/editar/borrar). Para casos críticos de pérdida de datos contactá al admin del sistema — tenemos backups semanales que se pueden restaurar.</p>
-
-<hr>
+<p>El sistema tiene <strong>audit log</strong> de todas las acciones. Para pérdidas críticas: contactar al admin → tenemos backups semanales restaurables.</p>
 
 <h2 id="s11">11. Atajos y tips</h2>
 
 <h3>Ctrl + K — Buscador global</h3>
-
-<img src="imagenes/11-ctrl-k.png" alt="Buscador global Ctrl+K con resultados">
-
-<p>Apretá <strong>Ctrl + K</strong> (o <strong>Cmd + K</strong> en Mac) desde cualquier pantalla. Se abre un buscador que mira a la vez en <strong>ventas, clientes y vehículos</strong>. Tipeá lo que sea — N° de venta, nombre, VIN, marca — y clickeá el resultado para ir directo.</p>
-
-<p>Útil cuando alguien te dice "vino el cliente Pérez de la venta tal" y no querés navegar por menús.</p>
+<img src="imagenes/11-ctrl-k.png" alt="Ctrl+K">
+<p>Buscador transversal en ventas, clientes y vehículos. Tipeá N° de venta, nombre, VIN, marca → resultado → ir directo.</p>
 
 <h3>Selector de sucursal</h3>
-
-<p>Si tu empresa tiene 2 sucursales (ej. CASA CENTRAL y Suc B), el selector arriba del navbar filtra <strong>todos los reportes y listados</strong> por la elegida. "Todas" muestra el agregado.</p>
-
-<p>Cambiarla NO afecta a otros usuarios — cada uno tiene su propio filtro.</p>
+<p>Si hay 2+ sucursales, el selector arriba del navbar filtra todos los reportes. Por usuario (no afecta a otros).</p>
 
 <h3>Filtros de período</h3>
-
-<p>Casi todas las pantallas con métricas (Dashboard, Ventas, Flujo de caja) tienen el filtro <strong>desde / hasta</strong> con quick ranges. Cambiarlo solo afecta lo que ves vos — no toca los datos.</p>
+<p>Dashboard, Ventas, Flujo de caja tienen filtro desde/hasta con quick ranges. Solo afecta lo que ves, no toca los datos.</p>
 
 <h3>Backups</h3>
-
-<p>El sistema tiene backups automáticos semanales (cada lunes 03:00 UTC, mientras el GitHub Action esté configurado con los secrets correctos). También podés generar uno manual:</p>
-
-<pre><code>python scripts/backup_db.py</code></pre>
-
-<p>Los backups quedan en <code>backups/snapshot_&lt;fecha&gt;.json.gz</code> y <strong>NO se suben a GitHub</strong> (contienen datos personales).</p>
+<p>Automáticos semanales (lunes 03:00 UTC). Manual: <code>python scripts/backup_db.py</code>. Quedan en <code>backups/snapshot_&lt;fecha&gt;.json.gz</code>, NO se suben a GitHub.</p>
 
 <h3>Si algo no funciona</h3>
 <ul>
-    <li><strong>Una página no carga</strong>: refrescá con <code>F5</code>. Si sigue mal, hacé logout y volvé a entrar.</li>
-    <li><strong>Te muestra "Error 401"</strong>: tu sesión venció, hacé login otra vez.</li>
-    <li><strong>No te deja crear algo</strong>: leé el mensaje rojo arriba del formulario — usualmente dice qué campo está mal.</li>
-    <li><strong>Necesitás ayuda</strong>: contactá al admin del sistema.</li>
+<li><strong>Una página no carga:</strong> F5. Si sigue mal, logout + login.</li>
+<li><strong>Error 401:</strong> sesión venció, login otra vez.</li>
+<li><strong>No deja crear:</strong> leer el mensaje rojo arriba del form.</li>
+<li><strong>Ayuda:</strong> contactar al admin del sistema.</li>
 </ul>
 
 <hr>
-
-<h2>Anexo — Cómo guardar las imágenes</h2>
-
-<p>Las capturas las tomé directamente del sistema en producción durante una sesión de Chrome MCP. Quedaron embebidas en la conversación del chat con Claude.</p>
-
-<p><strong>Para que el manual se vea con imágenes</strong>, guardá cada captura del chat con el nombre exacto que aparece en la tabla siguiente, dentro de la carpeta <code>C:\Users\prueb\CascadeProjects\playa\docs\imagenes\</code>.</p>
-
-<p>Procedimiento en el chat:</p>
-<ol>
-    <li>Buscá la captura que corresponde al ítem (por la descripción).</li>
-    <li>Hacé clic derecho sobre la imagen → <strong>"Guardar imagen como..."</strong>.</li>
-    <li>Navegá a <code>docs\imagenes\</code> y guardala con el nombre indicado.</li>
-</ol>
-
-<table>
-    <thead>
-        <tr><th>#</th><th>Nombre de archivo</th><th>Estado</th><th>Descripción</th></tr>
-    </thead>
-    <tbody>
-        <tr><td>1</td><td><code>01-login.png</code></td><td>✅ OK</td><td>Pantalla /login vacía.</td></tr>
-        <tr><td>2</td><td><code>01-logout.png</code></td><td>✅ OK</td><td>Menú de usuario con "Cerrar sesión".</td></tr>
-        <tr><td>3</td><td><code>02-dashboard.png</code></td><td>✅ OK</td><td>Dashboard con KPIs.</td></tr>
-        <tr><td>4</td><td><code>03-vehiculos-lista.png</code></td><td>✅ OK</td><td>Inventario vehículos con chips de calidad.</td></tr>
-        <tr><td>5</td><td><code>04-cliente-nuevo.png</code></td><td>✅ OK</td><td>Modal "Nuevo cliente" con form vacío.</td></tr>
-        <tr><td>6</td><td><code>05-ventas-lista.png</code></td><td>⚠ Tiene datos</td><td>Lista de ventas con chips MIG / Sin cliente / etc.</td></tr>
-        <tr><td>7</td><td><code>05-venta-nueva.png</code></td><td>✅ OK</td><td>Modal "Nueva venta" con form vacío.</td></tr>
-        <tr><td>8</td><td><code>06-cuotas-modal.png</code></td><td>✅ OK</td><td>Modal "Cuotas de la venta" (sólo montos).</td></tr>
-        <tr><td>9</td><td><code>07-cliente-detalle.png</code></td><td>⚠ Tiene datos</td><td>Detalle del cliente con sus ventas y cuotas.</td></tr>
-        <tr><td>10</td><td><code>07-cuotas-tabla.png</code></td><td>✅ OK</td><td>Tabla de cuotas con botones "✓ Pagar".</td></tr>
-        <tr><td>11</td><td><code>07-pagar-modal.png</code></td><td>⚠ Tiene datos</td><td>Modal "Registrar pago" mostrando datos de la cuota.</td></tr>
-        <tr><td>12</td><td><code>09-flujo-caja.png</code></td><td>⚠ Tiene datos</td><td>Flujo de caja con tabla de operaciones.</td></tr>
-        <tr><td>13</td><td><code>09-nuevo-movimiento.png</code></td><td>✅ OK</td><td>Modal "Nuevo movimiento" con form vacío.</td></tr>
-        <tr><td>14</td><td><code>10-morosos.png</code></td><td>✅ OK</td><td>Panel "Clientes morosos" YA OFUSCADO.</td></tr>
-        <tr><td>15</td><td><code>11-ctrl-k.png</code></td><td>⚠ Tiene datos</td><td>Palette Ctrl+K mostrando resultados.</td></tr>
-    </tbody>
-</table>
-
-<h3>Re-tomar capturas con ofuscación</h3>
-
-<p>Las marcadas con ⚠ tienen datos reales sin ofuscar. Para ofuscarlas vos antes de capturar, pegá esto en la consola del browser (F12 → Console) en la página correspondiente:</p>
-
-<pre><code>(function(){
-  const W=new Set(['AUTO','OFERTAS','CASA','CENTRAL','SUCURSAL','TOYOTA',
-    'HONDA','NISSAN','KIA','CHEVROLET','SUZUKI','FORD','MAZDA','HYUNDAI',
-    'VITZ','RACTIS','SIENTA','AURIS','ALLION','SPORTAGE','PASSO','RAV4',
-    'COROLLA','FIT','CIVIC','MARCH','PLATA','NEGRO','BLANCO','GRIS',
-    'ROJO','AZUL','VERDE','BEIGE','DORADO','MARRON','CELESTE',
-    'PYG','USD','EF','TB','CJ','AC','MIG']);
-  function isW(t){return W.has(t)||t.split(/\s+/).every(w=&gt;W.has(w));}
-  function obf(t){
-    if(!t||t.length&lt;6||isW(t))return false;
-    return /^[A-ZÁÉÍÓÚÑ]+(\s+[A-ZÁÉÍÓÚÑ]+){1,5}$/.test(t)
-      ||/^CUOTA\d{4,}$/i.test(t)
-      ||/^DRV\d{3}-\d+$/i.test(t)
-      ||/^SUC\d{3}-\d+$/i.test(t)
-      ||/^\d{6,10}$/.test(t)
-      ||/^0\d{3}[\s-]?\d{6,7}$/.test(t)
-      ||/^09\d{2}[\s-]?\d{3}[\s-]?\d{4}$/.test(t)
-      ||/^0\d{9,10}$/.test(t);
-  }
-  function walk(n){
-    if(n.nodeType===3){const t=n.textContent.trim();if(obf(t))n.textContent='█'.repeat(Math.min(t.length,18));}
-    else if(n.nodeType===1&amp;&amp;!['SCRIPT','STYLE','INPUT','TEXTAREA','SELECT','OPTION'].includes(n.tagName)){
-      for(const c of [...n.childNodes])walk(c);
-    }
-  }
-  walk(document.body);
-})();</code></pre>
-
-<p>Después usá <code>Win+Shift+S</code> para recortar y guardar la captura en <code>docs\imagenes\&lt;nombre&gt;.png</code>.</p>
-
-<hr>
-
-<h2>Versión</h2>
-
-<p>Manual versión 1.0 — corresponde al sistema desplegado en producción hasta los commits:</p>
-<ul>
-    <li>Backend <code>e1610c6</code> (Sale: distinguir status del contrato vs estado de cobranza)</li>
-    <li>Frontend <code>1f59b18</code> (Fix: BranchContext espera isAuthenticated antes de fetchear branches)</li>
-</ul>
-
-<p>Las mejoras de las ramas <code>staging</code> (recordatorios automáticos, PDF de cronograma, búsqueda fuzzy, etc.) no están cubiertas acá — se documentarán en la versión 2.0 del manual cuando se haga el próximo deploy.</p>
+<p style="font-size: 8pt; color: #6b7280; text-align: center;">Manual v1.0 · backend <code>e1610c6</code> · frontend <code>1f59b18</code></p>
 
 </body>
 </html>
