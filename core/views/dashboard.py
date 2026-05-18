@@ -964,6 +964,76 @@ class DashboardViewSet(viewsets.ViewSet):
         })
 
     @action(detail=False, methods=['get'])
+    def payment_heatmap(self, request):
+        """Concentración de cobros por día del mes en los últimos N meses.
+
+        Devuelve una matriz por día (1-31) con cantidad de cuotas
+        cobradas + monto. La UI puede pintar un heatmap para responder
+        "¿qué días me concentran las cobranzas?" — útil para planificar
+        staff de caja.
+
+        Query: ?months=N (default 6, máx 24), ?branch=.
+        """
+        from collections import defaultdict
+        user = request.user
+        if not user.enterprise:
+            return Response({'days': [], 'months': 0})
+
+        try:
+            months = int(request.query_params.get('months', 6))
+        except ValueError:
+            months = 6
+        months = max(1, min(months, 24))
+
+        today = date.today()
+        cutoff = today - timedelta(days=30 * months)
+
+        qs = Quotum.objects.filter(
+            enterprise=user.enterprise,
+            status='paid',
+            payment_date__gte=cutoff,
+            payment_date__lte=today,
+        )
+        qs = self._filter_quotas(qs, request)
+
+        by_day_count = defaultdict(int)
+        by_day_amount = defaultdict(float)
+        total_count = 0
+        total_amount = 0.0
+
+        for pd, amt in qs.values_list('payment_date', 'amount'):
+            if not pd:
+                continue
+            d = pd.day
+            by_day_count[d] += 1
+            by_day_amount[d] += float(amt or 0)
+            total_count += 1
+            total_amount += float(amt or 0)
+
+        days_out = []
+        for day in range(1, 32):
+            days_out.append({
+                'day': day,
+                'count': by_day_count.get(day, 0),
+                'amount': round(by_day_amount.get(day, 0.0), 2),
+            })
+
+        # Día pico (helpers para que el frontend no recalcule).
+        top_count_day = max(days_out, key=lambda x: x['count']) if total_count else None
+        top_amount_day = max(days_out, key=lambda x: x['amount']) if total_amount else None
+
+        return Response({
+            'months': months,
+            'period_start': cutoff.isoformat(),
+            'period_end': today.isoformat(),
+            'days': days_out,
+            'total_count': total_count,
+            'total_amount': round(total_amount, 2),
+            'top_count_day': top_count_day,
+            'top_amount_day': top_amount_day,
+        })
+
+    @action(detail=False, methods=['get'])
     def active_alerts(self, request):
         """Devuelve la lista de alertas activas según los umbrales de
         settings.ALERT_THRESHOLDS.
