@@ -182,6 +182,92 @@ class VehicleViewSet(viewsets.ModelViewSet):
         serializer.save(enterprise=user.enterprise, branch=branch)
     
     @action(detail=False, methods=['get'])
+    def price_suggestion(self, request):
+        """Sugerencia de precio basada en ventas históricas.
+
+        Acepta `brand`, `model`, `year`. Busca ventas cerradas (status =
+        'completed') de vehículos con el mismo brand+model y devuelve
+        min/max/mediana/promedio. Si no hay matches exactos del año,
+        amplía progresivamente la ventana hasta ±2 años, luego "cualquier
+        año del modelo".
+
+        El frontend usa esto como hint, no como precio forzado — el
+        usuario sigue tipeando el precio a mano si quiere.
+
+        Devuelve `matches=0` cuando no hay ninguna venta histórica del
+        modelo (caso de un modelo recién creado).
+        """
+        from core.models import Sale  # import local para evitar ciclo
+        from statistics import median, mean
+
+        brand_id = request.query_params.get('brand')
+        model_id = request.query_params.get('model')
+        try:
+            year = int(request.query_params.get('year') or 0)
+        except ValueError:
+            year = 0
+
+        if not (brand_id and model_id):
+            return Response({'matches': 0, 'reason': 'missing_brand_or_model'})
+
+        user = request.user
+        if not (user and user.enterprise):
+            return Response({'matches': 0})
+
+        base = Sale.objects.filter(
+            enterprise=user.enterprise,
+            vehicle__brand_id=brand_id,
+            vehicle__model_id=model_id,
+            status='completed',
+            total_price__gt=0,   # ignoramos ventas con precio 0 (basura de la migración)
+        ).select_related('vehicle')
+
+        def summarize(qs, scope):
+            prices = [float(p) for p in qs.values_list('total_price', flat=True) if p]
+            if not prices:
+                return None
+            recent = list(
+                qs.order_by('-sale_date').values(
+                    'sale_number', 'sale_date', 'total_price', 'vehicle__year',
+                )[:3]
+            )
+            return {
+                'matches': len(prices),
+                'scope':   scope,
+                'min':     min(prices),
+                'max':     max(prices),
+                'median':  median(prices),
+                'mean':    mean(prices),
+                'recent_examples': [
+                    {
+                        'sale_number': r['sale_number'],
+                        'sale_date':   r['sale_date'].isoformat() if r['sale_date'] else None,
+                        'total_price': float(r['total_price']),
+                        'year':        r['vehicle__year'],
+                    } for r in recent
+                ],
+            }
+
+        # 1) Año exacto
+        if year:
+            result = summarize(base.filter(vehicle__year=year), 'exact_year')
+            if result:
+                return Response(result)
+            # 2) Ventana ±2 años
+            window = base.filter(vehicle__year__gte=year - 2,
+                                  vehicle__year__lte=year + 2)
+            result = summarize(window, 'year_window_2')
+            if result:
+                return Response(result)
+
+        # 3) Cualquier año del modelo
+        result = summarize(base, 'any_year')
+        if result:
+            return Response(result)
+
+        return Response({'matches': 0, 'scope': 'none'})
+
+    @action(detail=False, methods=['get'])
     def search(self, request):
         """Busca vehículos para el palette global (Ctrl+K).
 
