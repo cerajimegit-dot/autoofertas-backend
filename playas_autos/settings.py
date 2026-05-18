@@ -341,3 +341,23 @@ SPECTACULAR_SETTINGS = {
 LOGIN_URL = 'ui:login'
 LOGIN_REDIRECT_URL = 'ui:dashboard'
 LOGOUT_REDIRECT_URL = 'ui:login'
+
+# ===== EMAIL =====
+# Por default usamos el backend de consola (imprime a stdout) — útil para
+# desarrollo y para que los management commands se vean en logs de cron.
+# En producción, si están seteadas las env vars de SMTP, usamos SMTP real.
+EMAIL_HOST = config('EMAIL_HOST', default='')
+if EMAIL_HOST:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+    EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+    EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+    DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL',
+                                default=f'AUTO OFERTAS <{EMAIL_HOST_USER}>')
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    DEFAULT_FROM_EMAIL = 'noreply@autoofertas.local'
+
+# Destinatario default para el digest diario; coma-separado en .env
+DAILY_DIGEST_RECIPIENTS = config('DAILY_DIGEST_RECIPIENTS', default='', cast=Csv())
