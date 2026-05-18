@@ -1,0 +1,93 @@
+name: Backup semanal de Supabase
+
+# Genera un snapshot completo cada lunes a las 03:00 UTC (00:00 PY)
+# y lo guarda como artifact del workflow durante 90 días.
+#
+# También se puede disparar manualmente desde la pestaña "Actions"
+# del repo en GitHub → "Run workflow".
+#
+# REQUISITOS — agregá estos secrets al repo:
+#   Settings → Secrets and variables → Actions → New repository secret
+#
+#   DATABASE_URL    URL del transaction pooler de Supabase (puerto 6543).
+#                   La misma que tenés en Render como env var.
+#   SECRET_KEY      Cualquier valor random (Django lo necesita para arrancar).
+#                   Tip: 'github-actions-backup-only' alcanza, sólo se usa
+#                   para correr dumpdata, no para servir requests.
+
+on:
+  schedule:
+    # Cron: minuto, hora, día-mes, mes, día-semana (UTC)
+    # Lunes 03:00 UTC = Domingo 22:00 PY (UTC-3) — ventana de bajo tráfico.
+    - cron: '0 3 * * 1'
+  workflow_dispatch:    # botón "Run workflow" manual
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run backup
+        env:
+          DB_ENGINE: postgres
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DEBUG: 'False'
+          ALLOWED_HOSTS: '*'
+        run: |
+          mkdir -p backups
+          python scripts/backup_db.py
+          ls -lh backups/
+
+      - name: Compute backup metadata
+        id: meta
+        run: |
+          FILE=$(ls -t backups/snapshot_*.json.gz | head -1)
+          SIZE=$(stat -c%s "$FILE")
+          DATE=$(date -u +%Y-%m-%d)
+          MD5=$(md5sum "$FILE" | awk '{print $1}')
+          echo "file=$FILE"           >> $GITHUB_OUTPUT
+          echo "size=$SIZE"           >> $GITHUB_OUTPUT
+          echo "date=$DATE"           >> $GITHUB_OUTPUT
+          echo "md5=$MD5"             >> $GITHUB_OUTPUT
+          echo "## Backup $DATE"      >> $GITHUB_STEP_SUMMARY
+          echo "- file: \`$(basename $FILE)\`"  >> $GITHUB_STEP_SUMMARY
+          echo "- size: $SIZE bytes"  >> $GITHUB_STEP_SUMMARY
+          echo "- MD5: \`$MD5\`"      >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-backup-${{ steps.meta.outputs.date }}
+          path: backups/snapshot_*.json.gz
+          retention-days: 90
+          compression-level: 0    # ya está gzipeado
+
+      # Opcional: notificación si tenés webhook configurado.
+      # Comentado por default — descomentar y agregar SLACK_WEBHOOK_URL
+      # al repo si querés que avise cuando termine.
+      #
+      # - name: Notify Slack
+      #   if: always()
+      #   run: |
+      #     curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+      #       -H 'Content-Type: application/json' \
+      #       -d "{\"text\":\"Backup semanal AUTO OFERTAS: ${{ job.status }} — file ${{ steps.meta.outputs.file }} (${{ steps.meta.outputs.size }} bytes)\"}"

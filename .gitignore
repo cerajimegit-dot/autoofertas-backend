@@ -121,7 +121,11 @@ secrets/
 # Backups de BD
 *.dump
 *.sql.gz
-backups/
+# Backups: ignoramos los snapshots (datos sensibles) pero versionamos
+# el README y cualquier doc dentro de backups/
+backups/*
+!backups/README.md
+!backups/.gitkeep
 db_backup_*
 *.sqlite3.backup.*
 *.sqlite3.corrupto*
