@@ -8,11 +8,11 @@
 
 ## TL;DR
 
-- **12 features nuevas** entre Pack 2, 3 y 4, todas en `staging`.
-- **9 endpoints backend nuevos** + 3 mejoras a endpoints existentes.
-- **7 paneles/páginas frontend nuevos** y mejoras a 4 páginas.
-- **52 tests nuevos** (todos verdes). Suite total: **152 passed**.
-- **24 commits** entre los dos repos.
+- **13 features nuevas** entre Pack 2, 3 y 4, todas en `staging`.
+- **10 endpoints backend nuevos** + 3 mejoras a endpoints existentes.
+- **7 paneles/páginas frontend nuevos** y mejoras a 5 páginas.
+- **55 tests nuevos** (todos verdes). Suite total: **155 passed**.
+- **28 commits** entre los dos repos.
 - **0 cambios en BD producción**. Migración 0010 (B7 de Pack 1) sigue
   pendiente de aplicar; nada del Pack 2/3/4 requiere migración.
 
@@ -201,6 +201,17 @@ de pago, y una fila TOTAL al final. Tests: **5/5**.
 
 > El botón "📥 Exportar MIGs a Excel" sigue ahí — son cosas distintas
 > (CSV server-side con filtros vs XLSX client-side para migración).
+
+### P4-C — Export CSV de clientes
+**Backend**: `GET /api/customers/export/`
+**Frontend**: Botón "⬇ Exportar CSV" en /customers
+
+Cierra el trío de exports (cash + sales + customers). Mismo patrón:
+BOM UTF-8, delimitador configurable, filename con fecha.
+
+Columnas incluyen: nombre, apellido, documento, contacto, ciudad,
+dirección, cantidad de ventas (annotación existente), fecha de
+creación, notas. Tests: **3/3**.
 
 ### P4-B — Análisis de margen por venta
 **Backend**: `GET /api/dashboard/margin_analysis/`
