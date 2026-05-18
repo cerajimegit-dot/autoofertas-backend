@@ -537,7 +537,7 @@ class QuotumViewSet(viewsets.ModelViewSet):
         from datetime import date
         today = date.today()
         in_30_days = today + timedelta(days=30)
-        
+
         queryset = self.get_queryset().filter(
             status='pending',
             due_date__gte=today,
@@ -545,6 +545,91 @@ class QuotumViewSet(viewsets.ModelViewSet):
         )
         serializer = QuotumListSerializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def upcoming(self, request):
+        """Cuotas que vencen en los próximos N días (default 7), con link
+        WhatsApp pre-armado para cada una.
+
+        Pensado para el panel "A cobrar esta semana" del dashboard:
+        el usuario ve una lista y con un solo click abre WhatsApp con el
+        mensaje listo para enviar al cliente.
+
+        Query params:
+          - `days`: ventana hacia adelante (default 7, máx 90).
+          - `branch`: filtrar por sucursal.
+          - `include_overdue`: si es 'true', incluye también las cuotas
+            ya vencidas no pagadas. Útil para "Pendientes de cobro".
+
+        Cada item devuelto trae:
+          - los campos normales de QuotumListSerializer
+          - `whatsapp_link`: URL wa.me/... lista (vacía si no hay teléfono)
+          - `days_until_due`: int (negativo si ya venció)
+        """
+        from datetime import date
+        from urllib.parse import quote_plus
+
+        today = date.today()
+        try:
+            days = min(int(request.query_params.get('days', 7)), 90)
+            days = max(days, 1)
+        except ValueError:
+            days = 7
+        include_overdue = request.query_params.get('include_overdue', '').lower() == 'true'
+
+        in_n_days = today + timedelta(days=days)
+        qs = self.get_queryset().filter(
+            status__in=['pending', 'overdue'],
+        ).exclude(status='paid').exclude(status='cancelled')
+
+        if include_overdue:
+            qs = qs.filter(due_date__lte=in_n_days)
+        else:
+            qs = qs.filter(due_date__gte=today, due_date__lte=in_n_days)
+
+        branch_id = request.query_params.get('branch')
+        if branch_id:
+            qs = qs.filter(sale__branch_id=branch_id)
+
+        qs = qs.select_related('customer', 'sale').order_by('due_date')[:200]
+
+        data = QuotumListSerializer(qs, many=True).data
+        # Enriquecemos cada item con WhatsApp link + days_until_due.
+        # Pre-cargamos los teléfonos para no hacer N+1 al iterar.
+        quotas_by_id = {q.id: q for q in qs}
+        for item in data:
+            q = quotas_by_id.get(item['id'])
+            if not q:
+                continue
+            item['days_until_due'] = (q.due_date - today).days if q.due_date else None
+            phone = (q.customer.phone if q.customer_id else '') or ''
+            item['customer_phone'] = phone or None
+            if not phone:
+                item['whatsapp_link'] = None
+                continue
+            import re as _re
+            digits = _re.sub(r'\D', '', phone)
+            if digits.startswith('0'):
+                digits = '595' + digits[1:]
+            elif not digits.startswith('595'):
+                digits = '595' + digits
+            nombre = (q.customer.first_name or '').split(' ')[0].title() or 'cliente'
+            vto = q.due_date.strftime('%d/%m/%Y') if q.due_date else ''
+            monto_int = int(q.amount or 0)
+            monto_str = f"{monto_int:,}".replace(',', '.')
+            message = (
+                f"Buen día {nombre}, le recordamos la cuota N°{q.quota_number} "
+                f"con vencimiento {vto} por Gs. {monto_str}. "
+                f"Cualquier consulta estamos a las órdenes. AUTO OFERTAS."
+            )
+            item['whatsapp_link'] = f"https://wa.me/{digits}?text={quote_plus(message)}"
+            item['whatsapp_message'] = message
+        return Response({
+            'days': days,
+            'include_overdue': include_overdue,
+            'count': len(data),
+            'results': data,
+        })
     
     @action(detail=False, methods=['get'])
     def quota_report(self, request):
