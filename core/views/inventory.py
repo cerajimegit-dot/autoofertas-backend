@@ -317,13 +317,39 @@ class VehicleViewSet(viewsets.ModelViewSet):
 
         return Response({'matches': 0, 'scope': 'none'})
 
+    # Cache de feature-flag pg_trgm — sigue el mismo pattern que
+    # CustomerViewSet._has_pg_trgm.
+    _pg_trgm_available = None
+
+    @classmethod
+    def _has_pg_trgm(cls):
+        from django.db import connection
+        if cls._pg_trgm_available is None:
+            if connection.vendor != 'postgresql':
+                cls._pg_trgm_available = False
+            else:
+                try:
+                    with connection.cursor() as c:
+                        c.execute("SELECT similarity('a', 'a');")
+                        c.fetchone()
+                    cls._pg_trgm_available = True
+                except Exception:
+                    cls._pg_trgm_available = False
+        return cls._pg_trgm_available
+
     @action(detail=False, methods=['get'])
     def search(self, request):
         """Busca vehículos para el palette global (Ctrl+K).
 
-        Filtra por VIN, marca, modelo, año (exacto si q es numérico) y
-        código de stock. Devuelve hasta `limit` resultados con los campos
-        mínimos que necesita el palette.
+        Filtra por VIN (con tolerancia a typos vía pg_trgm cuando está),
+        marca, modelo, año (exacto si q es numérico).
+
+        Estrategia:
+          - Si pg_trgm está disponible: aplicamos similarity() sobre vin
+            como criterio adicional (UNION-like a las matches ILIKE),
+            ordenado por mejor similaridad primero. Esto permite que
+            "JTDDT123" matchee "JTDBT123" (typo de letra).
+          - Fallback: ILIKE puro como antes.
         """
         from django.db.models import Q
         q = (request.query_params.get('q') or '').strip()
@@ -335,14 +361,36 @@ class VehicleViewSet(viewsets.ModelViewSet):
             limit = 8
 
         qs = self.get_queryset()
-        cond = (
-            Q(vin__icontains=q)
-            | Q(brand__name__icontains=q)
-            | Q(model__name__icontains=q)
-        )
-        if q.isdigit():
-            cond |= Q(year=int(q))
-        qs = qs.filter(cond)[:limit]
+        used = 'ilike'
+
+        if self._has_pg_trgm() and len(q) >= 4:
+            # pg_trgm sobre VIN: similarity > 0.3 (config razonable para
+            # códigos alfanuméricos cortos). Combinamos OR con los otros
+            # criterios para no perder matches por marca/modelo.
+            qs = qs.extra(
+                select={
+                    'sim_vin': 'similarity(vin, %s)',
+                },
+                select_params=[q],
+                where=[
+                    "(vin %% %s "
+                    " OR vin ILIKE %s"
+                    " OR LOWER(COALESCE((SELECT name FROM core_brand WHERE id=core_vehicle.brand_id), '')) LIKE %s"
+                    " OR LOWER(COALESCE((SELECT name FROM core_vehiclemodel WHERE id=core_vehicle.model_id), '')) LIKE %s)"
+                ],
+                params=[q, f'%{q}%', f'%{q.lower()}%', f'%{q.lower()}%'],
+                order_by=['-sim_vin'],
+            )[:limit]
+            used = 'pg_trgm'
+        else:
+            cond = (
+                Q(vin__icontains=q)
+                | Q(brand__name__icontains=q)
+                | Q(model__name__icontains=q)
+            )
+            if q.isdigit():
+                cond |= Q(year=int(q))
+            qs = qs.filter(cond)[:limit]
 
         data = [{
             'id': v.id,
@@ -353,7 +401,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
             'state': v.state,
             'state_display': v.get_state_display() if hasattr(v, 'get_state_display') else v.state,
         } for v in qs]
-        return Response({'results': data})
+        return Response({'results': data, 'used': used})
 
     @action(detail=False, methods=['get'])
     def by_state(self, request):
