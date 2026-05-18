@@ -333,6 +333,15 @@ class SaleViewSet(viewsets.ModelViewSet):
         if customer_id:
             queryset = queryset.filter(customer_id=customer_id)
 
+        # Filtro por vendedor — para "Mis ventas" del frontend. Aceptamos
+        # `seller=me` como alias del usuario actual (más cómodo que pasar
+        # el id desde el frontend).
+        seller_id = self.request.query_params.get('seller')
+        if seller_id == 'me':
+            queryset = queryset.filter(seller=self.request.user)
+        elif seller_id and str(seller_id).isdigit():
+            queryset = queryset.filter(seller_id=int(seller_id))
+
         date_from = self.request.query_params.get('date_from')
         if date_from:
             queryset = queryset.filter(sale_date__gte=date_from)
