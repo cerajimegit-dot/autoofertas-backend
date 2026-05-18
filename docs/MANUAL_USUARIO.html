@@ -62,13 +62,12 @@
         font-size: 8.5pt; line-height: 1.3;
     }
     pre code { background: transparent; color: inherit; padding: 0; }
-    /* Word respeta `width` fijo mejor que max-height; con max-height
-       la imagen puede quedar recortada al insertarse. Forzamos un
-       width que entra en la página A4 (16cm útiles tras los 1.5cm de
-       margen a cada lado), y dejamos que height se ajuste solo. */
+    /* Las imágenes ya están redimensionadas a 800px de ancho (ver
+       docs/resize_images.py), que entra cómodo en A4 con márgenes
+       1.5cm. Word las inserta a tamaño nativo y NO las re-escala —
+       evitamos el bug de Word donde max-height recortaba la imagen. */
     img {
-        width: 100%;
-        max-width: 16cm;
+        max-width: 100%;
         height: auto;
         border: 1px solid #e5e7eb;
         border-radius: 3px;
@@ -117,7 +116,7 @@
 <img src="imagenes/01-login.png" alt="Login">
 <p>Tipeá <strong>usuario</strong> y <strong>contraseña</strong>. Tras 5 errores en un minuto, el sistema bloquea unos minutos.</p>
 <p>Para salir: clic en el círculo con tu inicial (arriba a la derecha) → <strong>Cerrar sesión</strong>.</p>
-<img src="imagenes/01-logout.png" alt="Menú de usuario">
+<img src="imagenes/02-logout.png" alt="Menú de usuario">
 
 <h2 id="s2">2. Dashboard</h2>
 <img src="imagenes/02-dashboard.png" alt="Dashboard">
