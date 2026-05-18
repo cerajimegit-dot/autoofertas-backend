@@ -1,3 +1,4 @@
+from datetime import timedelta
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -181,6 +182,55 @@ class VehicleViewSet(viewsets.ModelViewSet):
         ).first()
         serializer.save(enterprise=user.enterprise, branch=branch)
     
+    @action(detail=False, methods=['get'])
+    def stuck(self, request):
+        """Lista vehículos available que llevan ≥ `days` días en stock.
+
+        El backend deja `Vehicle.created_at` cuando entra el vehículo al
+        sistema, y `Sale.save()` cambia automáticamente el state a
+        'sold'. Por lo tanto, un vehículo `state='available'` con
+        `created_at` viejo es uno que NO se vendió todavía.
+
+        Query params:
+          - `days`: umbral en días (default 90, mín 7, máx 720).
+          - `branch`: filtra por sucursal.
+
+        Devuelve hasta 200 vehículos (suficiente para revisión manual),
+        ordenados por `created_at` ascendente (los más viejos primero).
+        Cada item lleva un campo extra `days_in_stock` para que la UI
+        no tenga que calcularlo.
+        """
+        from datetime import date
+        try:
+            days = int(request.query_params.get('days', 90))
+        except ValueError:
+            days = 90
+        days = max(7, min(days, 720))
+
+        today = date.today()
+        cutoff = today - timedelta(days=days)
+
+        qs = self.get_queryset().filter(
+            state='available', created_at__date__lt=cutoff,
+        )
+        # `get_queryset` ya respeta `?branch=`, no repetimos.
+        qs = qs.order_by('created_at')[:200]
+
+        data = VehicleListSerializer(qs, many=True).data
+        # Adjuntamos days_in_stock para que el frontend pinte bien.
+        by_id = {v.id: v for v in qs}
+        for item in data:
+            v = by_id.get(item['id'])
+            if v and v.created_at:
+                item['days_in_stock'] = (today - v.created_at.date()).days
+            else:
+                item['days_in_stock'] = None
+        return Response({
+            'days_threshold': days,
+            'count': len(data),
+            'results': data,
+        })
+
     @action(detail=False, methods=['get'])
     def price_suggestion(self, request):
         """Sugerencia de precio basada en ventas históricas.
