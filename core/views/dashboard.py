@@ -768,6 +768,84 @@ class DashboardViewSet(viewsets.ViewSet):
 
         return Response(data)
 
+    @action(detail=False, methods=['get'])
+    def seller_commissions(self, request):
+        """Comisiones por vendedor en el período pedido.
+
+        AUTO OFERTAS hoy no tiene comisiones formalizadas, pero quería
+        ver cuánto le correspondería a cada vendedor en base a sus ventas
+        cerradas. Esta es la base — el porcentaje se pasa por query, el
+        endpoint sólo agrega.
+
+        Query params:
+          - `date_from`, `date_to`: período (default mes actual).
+          - `branch`: filtrar por sucursal.
+          - `rate`: porcentaje en decimal (default 1.0 = 1%). Acepta hasta
+            100. Si pasás 1.5, es 1.5%.
+
+        Devuelve una lista por vendedor + el total general, para que el
+        admin pueda usarlo como reporte.
+        """
+        user = request.user
+        if not user.enterprise:
+            return Response({'error': 'Usuario sin empresa'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        date_from, date_to = self._parse_period(request)
+        try:
+            rate = float(request.query_params.get('rate', 1.0))
+        except ValueError:
+            rate = 1.0
+        rate = max(0, min(rate, 100))
+
+        sales_qs = Sale.objects.filter(
+            enterprise=user.enterprise,
+            status='completed',
+            sale_date__date__gte=date_from,
+            sale_date__date__lte=date_to,
+        )
+        sales_qs = self._filter_sales(sales_qs, request)
+
+        by_seller = (
+            sales_qs.values('seller_id', 'seller__first_name', 'seller__last_name', 'seller__username')
+                    .annotate(n=Count('id'), total=Sum('total_price'))
+                    .order_by('-total')
+        )
+
+        items = []
+        total_ventas = 0
+        total_monto = 0.0
+        for row in by_seller:
+            monto = float(row['total'] or 0)
+            comision = monto * rate / 100
+            items.append({
+                'seller_id':       row['seller_id'],
+                'seller_username': row['seller__username'],
+                'seller_name':     (
+                    f"{row['seller__first_name'] or ''} {row['seller__last_name'] or ''}".strip()
+                    or row['seller__username']
+                    or '(sin vendedor)'
+                ),
+                'n_ventas':        row['n'],
+                'monto_total':     monto,
+                'comision':        round(comision, 2),
+            })
+            total_ventas += row['n']
+            total_monto += monto
+
+        return Response({
+            'periodo': {
+                'date_from': date_from.isoformat(),
+                'date_to':   date_to.isoformat(),
+            },
+            'rate_pct':       rate,
+            'rate':           rate,
+            'total_ventas':   total_ventas,
+            'total_monto':    total_monto,
+            'total_comision': round(total_monto * rate / 100, 2),
+            'by_seller':      items,
+        })
+
     @method_decorator(dashboard_cache(120))
     @action(detail=False, methods=['get'])
     def health(self, request):
