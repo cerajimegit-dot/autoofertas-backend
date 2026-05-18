@@ -27,9 +27,7 @@ clientes, vehículos, ventas, cuotas, cobranzas y flujo de caja.
 
 ## 1. Cómo entrar y salir del sistema
 
-> 📸 `[CAPTURA — pantalla de login]`
-> Sugerido: pantalla `/login` vacía, lista para tipear usuario y contraseña.
-> Archivo: `docs/imagenes/01-login.png`
+![Pantalla de login](imagenes/01-login.png)
 
 Entrá al sitio y tipeá **usuario** y **contraseña**. Si los datos son
 correctos vas directo al panel principal. Si te equivocaste 5 veces en
@@ -39,15 +37,13 @@ maliciosos — esperá y volvé a probar.
 Para salir, hacé clic en el círculo con tu inicial arriba a la derecha
 y elegí **"Cerrar sesión"**.
 
-> 📸 `[CAPTURA — menú de usuario abierto con botón "Cerrar sesión"]`
-> Archivo: `docs/imagenes/01-logout.png`
+![Menú de usuario abierto](imagenes/01-logout.png)
 
 ---
 
 ## 2. La pantalla principal
 
-> 📸 `[CAPTURA — dashboard completo]`
-> Archivo: `docs/imagenes/02-dashboard.png`
+![Dashboard completo](imagenes/02-dashboard.png)
 
 Apenas entrás, ves el **dashboard** con un resumen del negocio:
 
@@ -70,8 +66,10 @@ Arriba al medio aparece el **selector de sucursal** (sólo si tu
 empresa tiene más de una). Cuando elegís una, todas las pantallas
 filtran por ella. "Todas" muestra el agregado de las dos sucursales.
 
-> 📸 `[CAPTURA — selector de sucursal abierto]`
-> Archivo: `docs/imagenes/02-selector-sucursal.png`
+> Nota: el dropdown del selector de sucursal es nativo del navegador
+> y se renderiza a nivel del sistema operativo, por lo que no aparece
+> en capturas de pantalla del browser. En la imagen del dashboard ya
+> se ve el botón con "CASA CENTRAL" como sucursal activa.
 
 ### Filtro de período
 
@@ -86,8 +84,10 @@ anterior. Todos los KPIs respetan ese período.
 Andá a **🚗 Vehículos** en la barra lateral y hacé clic en
 **"+ Nuevo vehículo"**.
 
-> 📸 `[CAPTURA — formulario "Crear nuevo vehículo" abierto]`
-> Archivo: `docs/imagenes/03-vehiculo-nuevo.png`
+![Inventario de vehículos con chips de calidad](imagenes/03-vehiculos-lista.png)
+
+> Nota: el botón **"+ Nuevo vehículo"** sólo aparece para usuarios con
+> rol **administrador**. Los vendedores ven la lista en modo lectura.
 
 Campos obligatorios:
 - **Marca**: elegí del dropdown. Si no está, usá el botón verde **+** al
@@ -121,8 +121,7 @@ Clic en **"Crear vehículo"**. Vuelve a la lista y el nuevo aparece arriba.
 
 Andá a **👥 Clientes** y hacé clic en **"+ Nuevo cliente"**.
 
-> 📸 `[CAPTURA — formulario "Nuevo cliente" abierto]`
-> Archivo: `docs/imagenes/04-cliente-nuevo.png`
+![Modal "Nuevo cliente"](imagenes/04-cliente-nuevo.png)
 
 Campos obligatorios:
 - **Nombre** y **Apellido**.
@@ -146,13 +145,11 @@ Clic en **"Crear cliente"**.
 
 ## 5. Registrar una venta
 
-> 📸 `[CAPTURA — lista de ventas con botón "+ Nueva venta"]`
-> Archivo: `docs/imagenes/05-ventas-lista.png`
+![Lista de ventas con chips de calidad](imagenes/05-ventas-lista.png)
 
 Andá a **💰 Ventas** y hacé clic en **"+ Nueva venta"**.
 
-> 📸 `[CAPTURA — formulario "Nueva venta" abierto]`
-> Archivo: `docs/imagenes/05-venta-nueva.png`
+![Modal "Nueva venta"](imagenes/05-venta-nueva.png)
 
 Pasos:
 
@@ -181,8 +178,7 @@ Clic en **"Crear venta"**.
 Desde **💰 Ventas** hacé clic en el ícono de cuotas (📋) de la fila de
 tu venta. Se abre el modal **"Cuotas de la venta CM/26-XXX"**.
 
-> 📸 `[CAPTURA — modal "Cuotas de la venta" con tabla vacía]`
-> Archivo: `docs/imagenes/06-cuotas-modal-vacio.png`
+![Modal de cuotas de una venta](imagenes/06-cuotas-modal.png)
 
 Abajo del modal, en la sección **"Generar plan de cuotas"**, completá:
 - **Cantidad de cuotas**: ej. 12, 18, 24.
@@ -194,8 +190,8 @@ Abajo del modal, en la sección **"Generar plan de cuotas"**, completá:
 Clic en **"🎯 Generar preview"**. Vas a ver una lista con las N cuotas
 proyectadas:
 
-> 📸 `[CAPTURA — preview de cuotas mostrando 12 filas]`
-> Archivo: `docs/imagenes/06-cuotas-preview.png`
+> Captura de "Preview de cuotas" pendiente — se ve cuando completás
+> los inputs (cantidad, fecha, monto) y clickeás "🎯 Generar preview".
 
 Verificá que:
 - ✅ La **suma total** del preview cuadra con el monto a financiar
@@ -221,13 +217,11 @@ Hay 2 caminos:
 En la tabla de cuotas, fila por fila, vas a ver el botón **"💵 Pagar"**
 en las cuotas que están pendientes.
 
-> 📸 `[CAPTURA — tabla de cuotas con botón "Pagar" en cada fila]`
-> Archivo: `docs/imagenes/07-cuotas-tabla.png`
+![Tabla de cuotas con botones "Pagar"](imagenes/07-cuotas-tabla.png)
 
 Hacé clic y se abre el formulario:
 
-> 📸 `[CAPTURA — modal "Registrar pago" con campos]`
-> Archivo: `docs/imagenes/07-pagar-modal.png`
+![Modal "Registrar pago"](imagenes/07-pagar-modal.png)
 
 Completá:
 - **Fecha de pago**: hoy por default.
@@ -248,8 +242,7 @@ ventas y cuotas. La columna "Acción" tiene el mismo botón "💵 Pagar".
 Esta vista es más cómoda cuando vino el cliente al local y querés
 revisar todo su historial al mismo tiempo.
 
-> 📸 `[CAPTURA — detalle del cliente con resumen + tabla de cuotas]`
-> Archivo: `docs/imagenes/07-cliente-detalle.png`
+![Detalle de un cliente](imagenes/07-cliente-detalle.png)
 
 ---
 
@@ -258,8 +251,9 @@ revisar todo su historial al mismo tiempo.
 Si una cuota está cerca del vencimiento o ya venció, podés mandarle
 recordatorio al cliente con un click.
 
-> 📸 `[CAPTURA — botón WhatsApp 📱 en una cuota vencida]`
-> Archivo: `docs/imagenes/08-whatsapp-cuota.png`
+> Captura del botón WhatsApp por cuota: pendiente. En el detalle del
+> cliente (sección 7) se ve el botón "💬 WhatsApp" verde arriba a la
+> derecha que cumple la misma función a nivel del cliente.
 
 En la columna de acción de la cuota, clic en **"📱 WhatsApp"**.
 El sistema:
@@ -281,8 +275,7 @@ El sistema:
 
 Andá a **💵 Flujo de caja**.
 
-> 📸 `[CAPTURA — página de flujo de caja con 3 KPIs y tabla]`
-> Archivo: `docs/imagenes/09-flujo-caja.png`
+![Flujo de caja: KPIs + distribución + tabla](imagenes/09-flujo-caja.png)
 
 Hay 3 KPIs arriba:
 - **Ingresos** del período (verde).
@@ -298,8 +291,7 @@ original.
 Los movimientos **manuales** se cargan con el botón **"+ Nuevo
 movimiento"**:
 
-> 📸 `[CAPTURA — modal "Nuevo movimiento" abierto]`
-> Archivo: `docs/imagenes/09-nuevo-movimiento.png`
+![Modal "Nuevo movimiento"](imagenes/09-nuevo-movimiento.png)
 
 Completá:
 - **Fecha**, **Sucursal**.
@@ -334,8 +326,7 @@ arreglar. Acá los casos típicos y cómo proceder.
 - En el dashboard también hay un panel **"Clientes morosos (top 15)"**.
   Cada cliente moroso linkea a su detalle.
 
-> 📸 `[CAPTURA — panel "Clientes morosos" del dashboard]`
-> Archivo: `docs/imagenes/10-morosos.png`
+![Panel "Clientes morosos" del dashboard](imagenes/10-morosos.png)
 
 - En **📋 Cuotas** podés filtrar por **estado = Vencidas** para ver
   todas las cuotas atrasadas.
@@ -368,8 +359,9 @@ Pasa por:
 En **💰 Ventas**, hay chips de calidad arriba de la tabla. Clic en
 **"⚠ Sin cliente"** para filtrar.
 
-> 📸 `[CAPTURA — chips de calidad en /ventas]`
-> Archivo: `docs/imagenes/10-chips-ventas.png`
+> Los chips de calidad se ven arriba de la tabla en la imagen de
+> [Ventas](#5-registrar-una-venta) — incluyen **Todas / Solo reales /
+> Códigos MIG / Placeholder / Sin cliente / Sin vehículo**.
 
 **Cómo arreglarlas:**
 
@@ -411,8 +403,9 @@ Mismo patrón: chips de calidad en **🚗 Vehículos**:
 - **"⚠ VIN placeholder"**: VIN con formato `VIN-DUMMY` o `VIN12345`
   generado automáticamente. Si conseguís el VIN real, reemplazalo.
 
-> 📸 `[CAPTURA — chips de calidad en /vehiculos]`
-> Archivo: `docs/imagenes/10-chips-vehiculos.png`
+> Los chips de calidad de vehículos se ven en la imagen de
+> [Vehículos](#3-cargar-un-vehículo-nuevo) — incluyen
+> **Todos / Sin precio / VIN placeholder**.
 
 ### 10.5. Clientes con documento autogenerado
 
@@ -473,8 +466,7 @@ pueden restaurar.
 
 ### Ctrl + K — Buscador global
 
-> 📸 `[CAPTURA — palette global Ctrl+K abierto]`
-> Archivo: `docs/imagenes/11-ctrl-k.png`
+![Buscador global Ctrl+K con resultados](imagenes/11-ctrl-k.png)
 
 Apretá **Ctrl + K** (o **Cmd + K** en Mac) desde cualquier pantalla.
 Se abre un buscador que mira a la vez en **ventas, clientes y
@@ -523,43 +515,88 @@ suben a GitHub** (contienen datos personales).
 
 ---
 
-## Lista de capturas de pantalla a sacar
+## Cómo guardar las imágenes de este manual
 
-> Para completar el manual con imágenes, sacá estas capturas y
-> guardalas en `docs/imagenes/` con los nombres indicados. Después
-> reemplazá los placeholders `[CAPTURA — ...]` por
-> `![descripción](imagenes/nombre.png)`.
+Las capturas las tomé directamente del sistema en producción durante
+una sesión de Chrome MCP. Quedaron embebidas en la conversación del
+chat con Claude.
 
-| # | Archivo | Cómo conseguirla |
-|---|---|---|
-| 1 | `01-login.png` | Pantalla `/login` vacía. |
-| 2 | `01-logout.png` | Menú de usuario abierto (clic en círculo arriba a la derecha). |
-| 3 | `02-dashboard.png` | Dashboard completo en cualquier período. |
-| 4 | `02-selector-sucursal.png` | Selector de sucursal desplegado. |
-| 5 | `03-vehiculo-nuevo.png` | Modal "Crear nuevo vehículo" abierto. |
-| 6 | `04-cliente-nuevo.png` | Modal "Nuevo cliente" abierto. |
-| 7 | `05-ventas-lista.png` | Página /ventas con la tabla visible. |
-| 8 | `05-venta-nueva.png` | Modal "Nueva venta" abierto. |
-| 9 | `06-cuotas-modal-vacio.png` | Modal de cuotas de una venta nueva (sin cuotas todavía). |
-| 10 | `06-cuotas-preview.png` | Después de clickear "Generar preview". |
-| 11 | `07-cuotas-tabla.png` | Modal de cuotas con cuotas ya generadas. |
-| 12 | `07-pagar-modal.png` | Modal "Registrar pago" abierto. |
-| 13 | `07-cliente-detalle.png` | `/clientes/<id>` de un cliente con ventas y cuotas. |
-| 14 | `08-whatsapp-cuota.png` | Acercamiento al botón WhatsApp de una cuota. |
-| 15 | `09-flujo-caja.png` | Página /flujo-caja completa. |
-| 16 | `09-nuevo-movimiento.png` | Modal "Nuevo movimiento" abierto. |
-| 17 | `10-morosos.png` | Panel "Clientes morosos" del dashboard. |
-| 18 | `10-chips-ventas.png` | Chips de calidad arriba de /ventas. |
-| 19 | `10-chips-vehiculos.png` | Chips de calidad arriba de /vehículos. |
-| 20 | `11-ctrl-k.png` | Buscador global Ctrl+K abierto con algún resultado. |
+**Para que el manual se vea con imágenes**, guardá cada captura del
+chat con el nombre exacto que aparece en la tabla siguiente, dentro
+de la carpeta `C:\Users\prueb\CascadeProjects\playa\docs\imagenes\`.
 
-**Tips para sacar buenas capturas**:
-- Usá el navegador en pantalla completa.
-- Tapá nombres y datos sensibles reales con un cuadrado negro.
-- Resolución 1280×800 o más.
-- Formato PNG para texto, JPG para fondos con muchos colores.
-- Si querés evitar mostrar montos reales, hacé las capturas en un
-  ambiente de prueba o con datos demo.
+Procedimiento en el chat:
+1. Buscá la captura que corresponde al ítem (por la descripción).
+2. Hacé clic derecho sobre la imagen → **"Guardar imagen como..."**.
+3. Navegá a `docs\imagenes\` y guardala con el nombre indicado.
+
+| # | Nombre de archivo | Estado | Descripción de la captura |
+|---|---|---|---|
+| 1 | `01-login.png`              | ✅ OK | Pantalla `/login` vacía. |
+| 2 | `01-logout.png`             | ✅ OK | Menú de usuario abierto con "Cerrar sesión". |
+| 3 | `02-dashboard.png`          | ✅ OK | Dashboard con KPIs (sólo agregados, sin datos sensibles). |
+| 4 | `03-vehiculos-lista.png`    | ✅ OK | Inventario vehículos con chips "Sin precio" y "VIN placeholder". |
+| 5 | `04-cliente-nuevo.png`      | ✅ OK | Modal "Nuevo cliente" con form vacío. |
+| 6 | `05-ventas-lista.png`       | ⚠ Tiene datos | Lista de ventas con chips MIG / Sin cliente / etc. (nombres de clientes visibles — re-tomar con ofuscación antes de publicar). |
+| 7 | `05-venta-nueva.png`        | ✅ OK | Modal "Nueva venta" con form vacío. |
+| 8 | `06-cuotas-modal.png`       | ✅ OK | Modal "Cuotas de la venta CM36/26" (sólo montos genéricos). |
+| 9 | `07-cliente-detalle.png`    | ⚠ Tiene datos | Detalle del cliente con sus ventas y cuotas (nombre real visible — re-tomar). |
+| 10 | `07-cuotas-tabla.png`      | ✅ OK | Tabla de cuotas de un cliente con botones "✓ Pagar". |
+| 11 | `07-pagar-modal.png`       | ⚠ Tiene datos | Modal "Registrar pago" mostrando datos de la cuota (nombre del cliente — re-tomar). |
+| 12 | `09-flujo-caja.png`        | ⚠ Tiene datos | Flujo de caja con tabla de operaciones (nombres de clientes — re-tomar). |
+| 13 | `09-nuevo-movimiento.png`  | ✅ OK | Modal "Nuevo movimiento" con form vacío. |
+| 14 | `10-morosos.png`           | ✅ OK | **Panel "Clientes morosos" YA OFUSCADO** (versión ofuscada del chat). |
+| 15 | `11-ctrl-k.png`            | ⚠ Tiene datos | Palette Ctrl+K mostrando resultados (clientes visibles — re-tomar). |
+
+### Re-tomar las capturas con ofuscación (cuando puedas)
+
+Las 5 marcadas con ⚠ tienen datos reales sin ofuscar todavía. Para
+ofuscarlas vos mismo en el navegador antes de capturar, pegá esto en
+la consola del browser (F12 → Console) en la página correspondiente:
+
+```javascript
+(function(){
+  const W=new Set(['AUTO','OFERTAS','CASA','CENTRAL','SUCURSAL','TOYOTA',
+    'HONDA','NISSAN','KIA','CHEVROLET','SUZUKI','FORD','MAZDA','HYUNDAI',
+    'VITZ','RACTIS','SIENTA','AURIS','ALLION','SPORTAGE','PASSO','RAV4',
+    'COROLLA','FIT','CIVIC','MARCH','PLATA','NEGRO','BLANCO','GRIS',
+    'ROJO','AZUL','VERDE','BEIGE','DORADO','MARRON','CELESTE',
+    'PYG','USD','EF','TB','CJ','AC','MIG']);
+  function isW(t){return W.has(t)||t.split(/\s+/).every(w=>W.has(w));}
+  function obf(t){
+    if(!t||t.length<6||isW(t))return false;
+    return /^[A-ZÁÉÍÓÚÑ]+(\s+[A-ZÁÉÍÓÚÑ]+){1,5}$/.test(t)
+      ||/^CUOTA\d{4,}$/i.test(t)
+      ||/^DRV\d{3}-\d+$/i.test(t)
+      ||/^SUC\d{3}-\d+$/i.test(t)
+      ||/^\d{6,10}$/.test(t)
+      ||/^0\d{3}[\s-]?\d{6,7}$/.test(t)
+      ||/^09\d{2}[\s-]?\d{3}[\s-]?\d{4}$/.test(t)
+      ||/^0\d{9,10}$/.test(t);
+  }
+  function walk(n){
+    if(n.nodeType===3){const t=n.textContent.trim();if(obf(t))n.textContent='█'.repeat(Math.min(t.length,18));}
+    else if(n.nodeType===1&&!['SCRIPT','STYLE','INPUT','TEXTAREA','SELECT','OPTION'].includes(n.tagName)){
+      for(const c of [...n.childNodes])walk(c);
+    }
+  }
+  walk(document.body);
+})();
+```
+
+Después usá `Win+Shift+S` para recortar y guardar la captura en
+`docs\imagenes\<nombre>.png`.
+
+### Capturas opcionales (no incluidas)
+
+Estas las podés sacar después si querés enriquecer el manual:
+
+| Sugerencia | Cuándo viene bien |
+|---|---|
+| `06-cuotas-preview.png` | Después de clickear "Generar preview" en el modal de cuotas. |
+| `08-whatsapp-cuota.png` | Acercamiento al botón WhatsApp de una cuota individual. |
+| `10-chips-vehiculos.png` | Detalle de los chips de calidad de vehículos. |
+| `10-chips-ventas.png`   | Detalle de los chips de calidad de ventas. |
 
 ---
 
