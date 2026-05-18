@@ -301,6 +301,119 @@ class SaleViewSet(viewsets.ModelViewSet):
     """ViewSet para gestión de ventas"""
     permission_classes = [IsAuthenticated, IsEnterpriseOwnerOrAdmin, CanDeleteSale]
 
+    @action(detail=True, methods=['post'], url_path='auto-generate-quotas')
+    def auto_generate_quotas(self, request, pk=None):
+        """Genera automáticamente un plan de N cuotas iguales para una venta.
+
+        Reemplaza al flujo manual de QuotaGenerator del modal de cuotas.
+        Útil para: una vez creada una venta a crédito, llamar a este
+        endpoint con (n_quotas, first_due_date) y listo.
+
+        Reglas:
+          - La venta NO debe tener cuotas todavía (devolvemos 409 si tiene).
+          - Monto a financiar = total_price - down_payment.
+          - Cada cuota: monto / n_quotas, redondeado al peso superior. La
+            última cuota se ajusta para que la suma cuadre exactamente con
+            el monto a financiar (centavos sobran/faltan van a la última).
+          - Fechas: first_due_date + (i × interval_months) meses.
+
+        Body JSON:
+          - n_quotas: int (default 12, max 60)
+          - first_due_date: YYYY-MM-DD (default sale_date + 30 días)
+          - interval_months: int (default 1)
+          - plan_name: str (opcional)
+        """
+        from datetime import date, timedelta
+        from decimal import Decimal, ROUND_HALF_UP
+
+        sale = self.get_object()
+
+        if sale.quotas.exists():
+            return Response(
+                {'detail': 'La venta ya tiene cuotas. Borrá las existentes '
+                           'antes de regenerar el plan.'},
+                status=409,
+            )
+
+        try:
+            n_quotas = int(request.data.get('n_quotas', 12))
+            n_quotas = max(1, min(n_quotas, 60))
+        except (ValueError, TypeError):
+            n_quotas = 12
+
+        try:
+            interval_months = int(request.data.get('interval_months', 1))
+            interval_months = max(1, min(interval_months, 12))
+        except (ValueError, TypeError):
+            interval_months = 1
+
+        plan_name = request.data.get('plan_name') or f'Plan {n_quotas} cuotas'
+
+        # Fecha primera cuota.
+        first_due_raw = request.data.get('first_due_date')
+        if first_due_raw:
+            try:
+                first_due = date.fromisoformat(first_due_raw)
+            except ValueError:
+                return Response(
+                    {'first_due_date': 'Formato inválido. Usá YYYY-MM-DD.'},
+                    status=400,
+                )
+        else:
+            base_date = sale.sale_date.date() if sale.sale_date else date.today()
+            first_due = base_date + timedelta(days=30)
+
+        # Monto a financiar.
+        total = Decimal(sale.total_price or 0)
+        down  = Decimal(sale.down_payment or 0)
+        a_financiar = total - down
+        if a_financiar <= 0:
+            return Response(
+                {'detail': 'La venta no tiene monto a financiar (total - seña ≤ 0).'},
+                status=400,
+            )
+
+        # Monto base por cuota (redondeo al peso superior). La última cuota
+        # absorbe el resto para que la suma exacta sea a_financiar.
+        base = (a_financiar / n_quotas).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+        amounts = [base] * (n_quotas - 1)
+        last = a_financiar - sum(amounts)
+        amounts.append(last)
+
+        # Util para sumar meses sin overflowear día (ej. enero 31 + 1 mes = feb 28/29).
+        def _add_months(d, months):
+            month = d.month - 1 + months
+            year = d.year + month // 12
+            month = month % 12 + 1
+            from calendar import monthrange
+            day = min(d.day, monthrange(year, month)[1])
+            return date(year, month, day)
+
+        created = []
+        for i, amt in enumerate(amounts):
+            q = Quotum.objects.create(
+                enterprise=sale.enterprise,
+                sale=sale,
+                customer=sale.customer,
+                quota_number=i + 1,
+                total_plan=n_quotas,
+                plan_name=plan_name,
+                amount=amt,
+                due_date=_add_months(first_due, i * interval_months),
+                status='pending',
+            )
+            created.append(q)
+
+        return Response({
+            'count': len(created),
+            'a_financiar': float(a_financiar),
+            'plan_name': plan_name,
+            'first_due_date': first_due.isoformat(),
+            'last_due_date': created[-1].due_date.isoformat(),
+            'monto_base': float(base),
+            'last_cuota_amount': float(last),
+        }, status=201)
+
     @action(detail=False, methods=['get'], url_path='export')
     def export_csv(self, request):
         """Exporta las ventas filtradas como CSV.
