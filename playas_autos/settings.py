@@ -55,6 +55,17 @@ INSTALLED_APPS = [
     'ui',
 ]
 
+# === SaaS multiempresa (opcional) ===
+# Activar con SAAS_ENABLED=True en .env. Cuando está activo:
+#   - Se monta la app `saas` con endpoints /api/saas/...
+#   - El signup público crea Enterprise + User + Subscription trial.
+# AUTO OFERTAS no necesita esto encendido; lo enciende SOLAMENTE la
+# instancia SaaS pública que vamos a desplegar en otro dominio.
+SAAS_ENABLED = config('SAAS_ENABLED', default=False, cast=bool)
+if SAAS_ENABLED:
+    INSTALLED_APPS.append('saas')
+
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
