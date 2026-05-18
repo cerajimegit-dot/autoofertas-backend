@@ -963,6 +963,146 @@ class DashboardViewSet(viewsets.ViewSet):
             'by_seller':      items,
         })
 
+    @action(detail=False, methods=['get'])
+    def active_alerts(self, request):
+        """Devuelve la lista de alertas activas según los umbrales de
+        settings.ALERT_THRESHOLDS.
+
+        Cada alerta tiene:
+          - id:        identificador único (para que la UI lo recuerde)
+          - severity:  'warn' | 'crit'
+          - title:     texto corto.
+          - detail:    texto explicativo con el valor actual y umbral.
+          - threshold: el número configurado.
+          - value:     el número actual medido.
+          - action:    sugerencia de qué hacer ('/audit-logs', '/clientes?q=…', etc).
+
+        Respeta ?branch= como el resto del dashboard.
+        """
+        from django.conf import settings as _settings
+        user = request.user
+        if not user.enterprise:
+            return Response({'alerts': []})
+
+        today = date.today()
+        thr = _settings.ALERT_THRESHOLDS
+
+        # Reusamos los cálculos de health (sin cache; estos números deben
+        # ser instantáneos para que el panel reaccione a cambios).
+        quotas_base = Quotum.objects.filter(
+            enterprise=user.enterprise, sale__status='completed',
+        )
+        quotas_base = self._filter_quotas(quotas_base, request)
+        cuotas_activas = quotas_base.exclude(status='cancelled')
+        n_activas = cuotas_activas.count()
+        vencidas = cuotas_activas.filter(
+            due_date__lt=today,
+        ).exclude(status='paid')
+        n_vencidas = vencidas.count()
+        mora_pct = (n_vencidas / n_activas * 100) if n_activas else 0
+
+        vehs_base = Vehicle.objects.filter(
+            enterprise=user.enterprise, state='available',
+        )
+        vehs_base = self._filter_vehicles(vehs_base, request)
+        cutoff_90 = today - timedelta(days=90)
+        estancados = vehs_base.filter(created_at__date__lt=cutoff_90).count()
+
+        # Días promedio de pago — sólo si hay muestra suficiente.
+        from datetime import timedelta as _td
+        period_start = today - _td(days=30)
+        pagadas_recientes = list(quotas_base.filter(
+            status='paid',
+            payment_date__gte=period_start,
+            payment_date__lte=today,
+        ).values_list('due_date', 'payment_date'))
+        if pagadas_recientes:
+            diffs = [(pd - dd).days for dd, pd in pagadas_recientes if dd and pd]
+            dias_pago = (sum(diffs) / len(diffs)) if diffs else None
+        else:
+            dias_pago = None
+
+        alerts = []
+
+        # === Morosidad ===
+        if mora_pct >= thr['mora_pct_crit']:
+            alerts.append({
+                'id': 'mora_pct_crit', 'severity': 'crit',
+                'title': f'Morosidad crítica: {mora_pct:.1f}%',
+                'detail': f'{n_vencidas} cuotas vencidas sobre {n_activas} activas. '
+                          f'Umbral crítico: {thr["mora_pct_crit"]}%.',
+                'value': round(mora_pct, 1), 'threshold': thr['mora_pct_crit'],
+                'action': '/quotas',
+            })
+        elif mora_pct >= thr['mora_pct_warn']:
+            alerts.append({
+                'id': 'mora_pct_warn', 'severity': 'warn',
+                'title': f'Morosidad alta: {mora_pct:.1f}%',
+                'detail': f'{n_vencidas} cuotas vencidas sobre {n_activas} activas.',
+                'value': round(mora_pct, 1), 'threshold': thr['mora_pct_warn'],
+                'action': '/quotas',
+            })
+
+        # === Cantidad de vencidas ===
+        if n_vencidas >= thr['vencidas_count_crit']:
+            alerts.append({
+                'id': 'vencidas_count_crit', 'severity': 'crit',
+                'title': f'{n_vencidas} cuotas vencidas sin cobrar',
+                'detail': f'Umbral crítico: {thr["vencidas_count_crit"]}.',
+                'value': n_vencidas, 'threshold': thr['vencidas_count_crit'],
+                'action': '/quotas',
+            })
+        elif n_vencidas >= thr['vencidas_count_warn']:
+            alerts.append({
+                'id': 'vencidas_count_warn', 'severity': 'warn',
+                'title': f'{n_vencidas} cuotas vencidas',
+                'detail': f'Umbral atención: {thr["vencidas_count_warn"]}.',
+                'value': n_vencidas, 'threshold': thr['vencidas_count_warn'],
+                'action': '/quotas',
+            })
+
+        # === Estancados ===
+        if estancados >= thr['estancados_crit']:
+            alerts.append({
+                'id': 'estancados_crit', 'severity': 'crit',
+                'title': f'{estancados} vehículos estancados >90d',
+                'detail': 'Revisar precios — autos available sin moverse en 3+ meses.',
+                'value': estancados, 'threshold': thr['estancados_crit'],
+                'action': '/vehicles',
+            })
+        elif estancados >= thr['estancados_warn']:
+            alerts.append({
+                'id': 'estancados_warn', 'severity': 'warn',
+                'title': f'{estancados} vehículos estancados >90d',
+                'detail': 'Considerar revisar precios.',
+                'value': estancados, 'threshold': thr['estancados_warn'],
+                'action': '/vehicles',
+            })
+
+        # === Días promedio de pago ===
+        if dias_pago is not None:
+            if dias_pago >= thr['dias_pago_crit']:
+                alerts.append({
+                    'id': 'dias_pago_crit', 'severity': 'crit',
+                    'title': f'Clientes pagan en promedio {dias_pago:.1f} días tarde',
+                    'detail': 'Endurecer cobranza — la cartera se está deteriorando.',
+                    'value': round(dias_pago, 1), 'threshold': thr['dias_pago_crit'],
+                    'action': '/quotas',
+                })
+            elif dias_pago >= thr['dias_pago_warn']:
+                alerts.append({
+                    'id': 'dias_pago_warn', 'severity': 'warn',
+                    'title': f'Pago promedio {dias_pago:.1f} días tras vencimiento',
+                    'detail': 'Mandar recordatorios antes del vencimiento.',
+                    'value': round(dias_pago, 1), 'threshold': thr['dias_pago_warn'],
+                    'action': '/',
+                })
+
+        return Response({
+            'alerts': alerts,
+            'thresholds': thr,
+        })
+
     @method_decorator(dashboard_cache(120))
     @action(detail=False, methods=['get'])
     def health(self, request):

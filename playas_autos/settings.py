@@ -361,3 +361,19 @@ else:
 
 # Destinatario default para el digest diario; coma-separado en .env
 DAILY_DIGEST_RECIPIENTS = config('DAILY_DIGEST_RECIPIENTS', default='', cast=Csv())
+
+# ===== UMBRALES DE ALERTAS =====
+# Configurables vía env vars. Los usa /dashboard/active_alerts/ y el digest.
+# Tipos:
+#   - *_WARN: amarillo, "ojo".
+#   - *_CRIT: rojo, "intervenir ya".
+ALERT_THRESHOLDS = {
+    'mora_pct_warn':       config('ALERT_MORA_PCT_WARN',       default=10.0, cast=float),
+    'mora_pct_crit':       config('ALERT_MORA_PCT_CRIT',       default=25.0, cast=float),
+    'estancados_warn':     config('ALERT_ESTANCADOS_WARN',     default=5,    cast=int),
+    'estancados_crit':     config('ALERT_ESTANCADOS_CRIT',     default=15,   cast=int),
+    'vencidas_count_warn': config('ALERT_VENCIDAS_COUNT_WARN', default=10,   cast=int),
+    'vencidas_count_crit': config('ALERT_VENCIDAS_COUNT_CRIT', default=20,   cast=int),
+    'dias_pago_warn':      config('ALERT_DIAS_PAGO_WARN',      default=3.0,  cast=float),
+    'dias_pago_crit':      config('ALERT_DIAS_PAGO_CRIT',      default=7.0,  cast=float),
+}
