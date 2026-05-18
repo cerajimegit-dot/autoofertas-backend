@@ -62,9 +62,14 @@
         font-size: 8.5pt; line-height: 1.3;
     }
     pre code { background: transparent; color: inherit; padding: 0; }
+    /* Word respeta `width` fijo mejor que max-height; con max-height
+       la imagen puede quedar recortada al insertarse. Forzamos un
+       width que entra en la página A4 (16cm útiles tras los 1.5cm de
+       margen a cada lado), y dejamos que height se ajuste solo. */
     img {
-        max-width: 100%;
-        max-height: 350px;
+        width: 100%;
+        max-width: 16cm;
+        height: auto;
         border: 1px solid #e5e7eb;
         border-radius: 3px;
         margin: 6px 0;
@@ -182,6 +187,8 @@
 
 <h2 id="s10">10. Casos comunes a resolver</h2>
 
+<p class="lead" style="margin-bottom: 6px;">El panel <strong>"Datos a revisar"</strong> del dashboard linkea a cada categoría de inconsistencia. Los <strong>chips</strong> arriba de cada listado (Ventas, Clientes, Vehículos) filtran rápido por tipo de problema.</p>
+
 <h3>10.1. Cuotas vencidas sin pagar</h3>
 <p><strong>Detectar:</strong> KPI rojo "Cartera vencida" del dashboard, panel "Clientes morosos" (top 15), o filtrar Cuotas por estado = Vencidas.</p>
 <img src="imagenes/10-morosos.png" alt="Clientes morosos">
@@ -192,33 +199,113 @@
 <li>Si pidió posponer → editar la cuota cambiando el vencimiento.</li>
 <li>Si no responde tras 2-3 intentos → anotar en notas del cliente y considerar acción legal.</li>
 </ol>
-<blockquote class="danger">⚠ NO "marques pagada" una cuota sin recibir el dinero. Rompe el flujo de caja y los reportes.</blockquote>
+<blockquote class="danger">⚠ NO marques pagada una cuota sin recibir el dinero. Rompe el flujo de caja y los reportes.</blockquote>
 
-<h3>10.2. Ventas sin cliente</h3>
-<p><strong>Detectar:</strong> chip <strong>"⚠ Sin cliente"</strong> arriba de Ventas (los chips también incluyen <em>Todas / Solo reales / Códigos MIG / Placeholder / Sin vehículo</em>).</p>
-<p><strong>Arreglar:</strong> editar la venta (✏) → buscar/crear cliente real → Guardar.</p>
+<h3>10.2. Ventas sin cliente o sin vehículo</h3>
+<p><strong>Detectar:</strong> chips <strong>"⚠ Sin cliente"</strong> y <strong>"⚠ Sin vehículo"</strong> arriba de Ventas.</p>
+<p><strong>Arreglar:</strong> editar la venta (✏) → buscar/crear el cliente o vehículo real → Guardar.</p>
 <blockquote class="tip">💡 Si no sabés quién compró (migración vieja), dejar "Cliente General" o crear uno temporal hasta aclarar con el papelerío físico.</blockquote>
 
 <h3>10.3. Ventas con código MIG</h3>
 <p>Ventas importadas de la planilla Excel vieja (<code>MIG-001</code>, <code>MIG-2018-XX</code>). Si están cerradas y cobradas, dejarlas. Si tienen datos incompletos, completar. Para renombrar al formato actual <code>CM/26-001</code>: editar → "N° de venta".</p>
 <blockquote class="danger">⚠ NO borrar en masa. Muchas tienen cuotas pendientes de cobro reales.</blockquote>
 
-<h3>10.4. Vehículos con VIN basura o sin precio</h3>
+<h3>10.4. Venta con monto incorrecto o cero</h3>
+<p><strong>Síntomas:</strong> Total en <code>Gs. 0</code>, total negativo, o total que no coincide con la suma de las cuotas.</p>
+<p><strong>Detectar:</strong> chip <strong>"⚠ Placeholder"</strong> en Ventas marca las que tienen total=0 o <code>??/YY</code> de número.</p>
+<p><strong>Arreglar:</strong></p>
+<ol>
+<li>Editar la venta → completar el campo <strong>Precio unitario</strong> con el monto real.</li>
+<li>Si tiene entrega inicial, completar <strong>Entrega inicial (seña)</strong>.</li>
+<li>Guardar.</li>
+<li>Si la venta ya tenía cuotas: abrir el modal de cuotas → borrar las viejas → regenerar el plan con los montos correctos (las cuotas <strong>NO</strong> se recalculan solas al cambiar el total).</li>
+</ol>
+
+<h3>10.5. Venta "Cerrada" pero sin cobros (a crédito sin cuotas)</h3>
+<p><strong>Síntomas:</strong> En la tabla de Ventas, la columna <strong>Cobranza</strong> dice "Sin cobros aún 0/0" en una venta marcada como Cerrada (que debería tener un plan).</p>
+<p><strong>Causas típicas:</strong></p>
+<ul>
+<li>Venta a crédito donde nunca se generó el plan de cuotas.</li>
+<li>Migración importó la venta pero las cuotas quedaron en otra tabla.</li>
+</ul>
+<p><strong>Arreglar:</strong> abrir el modal de cuotas (📋) → generar el plan (sección 6 del manual). Si el cliente ya pagó algo, marcar esas cuotas como cobradas con la fecha real del pago.</p>
+
+<h3>10.6. Venta a contado pero con plan de cuotas (inconsistencia)</h3>
+<p><strong>Síntomas:</strong> venta con Forma de pago = <strong>Contado</strong> y a la vez tiene cuotas generadas.</p>
+<p><strong>Arreglar:</strong> decidir cuál es lo correcto:</p>
+<ul>
+<li>Si era <strong>contado real</strong> → entrar al modal de cuotas y borrarlas todas. El cobro contado ya está registrado como movimiento de caja al cerrar la venta.</li>
+<li>Si era <strong>a crédito mal cargada</strong> → editar la venta → cambiar Forma de pago a "Crédito" (o "Mixto" si hubo seña) → Guardar.</li>
+</ul>
+
+<h3>10.7. Vehículo "Vendido" pero sigue "Disponible" (o viceversa)</h3>
+<p><strong>Detectar:</strong> en Vehículos, buscar el VIN. Estado debería coincidir con la situación real de la venta.</p>
+<p><strong>Causas:</strong> venta cancelada sin liberar el vehículo, o venta a crédito en estado "Reserva" que nunca pasó a "Cerrada".</p>
+<p><strong>Arreglar:</strong> abrir la venta → cambiar el <strong>Estado</strong> (Reserva → Cerrada o Cancelada según corresponda) → Guardar. El sistema sincroniza el estado del vehículo automáticamente al cambiar el estado de la venta.</p>
+<blockquote class="warn">⚠ Si tenés que editar el estado del vehículo directamente (sin pasar por la venta), hacelo desde Vehículos → Editar → Estado. Pero verificá que coincida con la venta para no romper reportes.</blockquote>
+
+<h3>10.8. Cuotas que no cuadran con el total de la venta</h3>
+<p><strong>Síntomas:</strong> al abrir el modal de cuotas, la suma de las cuotas existentes ≠ (total − seña).</p>
+<p><strong>Causas:</strong> alguien editó el monto de la venta a posteriori, o alguien tocó montos individuales de cuotas.</p>
+<p><strong>Arreglar:</strong></p>
+<ol>
+<li>Verificar cuál es el monto real (contrato físico o lo que el cliente está pagando).</li>
+<li>Si lo correcto es el plan de cuotas → editar la venta y ajustar el Precio unitario.</li>
+<li>Si lo correcto es el monto de la venta → borrar las cuotas y regenerar el plan.</li>
+</ol>
+
+<h3>10.9. Cuota pagada por error / pago duplicado</h3>
+<p><strong>Síntomas:</strong> una cuota figura como Cobrada pero el cliente dice que no pagó, o aparecen dos movimientos de cobro de la misma cuota.</p>
+<p><strong>Arreglar:</strong></p>
+<ol>
+<li>Editar la cuota → cambiar Estado de "Cobrada" a "Pendiente" → borrar fecha de pago → Guardar.</li>
+<li>Ir a Flujo de caja → buscar el movimiento auto generado por ese cobro → si quedó duplicado, borrar el manual (los auto no se borran, se regeneran solos).</li>
+</ol>
+<blockquote class="warn">⚠ Anotar el motivo del cambio en las notas de la cuota para que el audit log tenga contexto.</blockquote>
+
+<h3>10.10. Vehículos con VIN basura o sin precio</h3>
 <p>Chips de calidad en Vehículos: <strong>"⚠ Sin precio"</strong> (price = 0) y <strong>"⚠ VIN placeholder"</strong> (<code>VIN-DUMMY</code>, <code>VIN12345</code>). Editar y completar con datos reales.</p>
 
-<h3>10.5. Clientes con documento autogenerado</h3>
+<h3>10.11. Clientes con documento autogenerado</h3>
 <p>Docs tipo <code>DRV026-001</code>, <code>SUC026-XXX</code>, <code>CUOTA-XX</code> son placeholders de la migración. Chip <strong>"⚠ Doc autogenerado"</strong> los filtra. Cuando consigas la cédula real, editar el cliente.</p>
 <blockquote class="tip">💡 Funcionan perfecto igual; el doc placeholder es solo cosmético. No es urgente.</blockquote>
 
-<h3>10.6. Clientes sin teléfono</h3>
+<h3>10.12. Clientes sin teléfono</h3>
 <p>Chip <strong>"⚠ Sin teléfono"</strong>. Sin él no se puede mandar WhatsApp. Pedí el número cuando venga el cliente.</p>
 
-<h3>10.7. Venta con datos equivocados</h3>
-<p>Ventas → buscar → ✏ Editar → corregir → Guardar. Si cambiás el <strong>vehículo</strong>, el sistema libera el viejo (Disponible) y marca el nuevo (Vendido).</p>
-<blockquote class="warn">⚠ Si cambiás el monto de una venta con cuotas existentes, las cuotas NO se recalculan. Hay que entrar al modal y ajustarlas (o borrarlas y regenerar).</blockquote>
+<h3>10.13. Clientes duplicados (mismo nombre, distinto documento)</h3>
+<p><strong>Detectar:</strong> tipear el nombre en la búsqueda de Clientes — si aparecen 2+ fichas con el mismo nombre, hay duplicado.</p>
+<p><strong>Arreglar:</strong></p>
+<ol>
+<li>Elegir cuál es la ficha "buena" (la que tiene más ventas o datos más completos).</li>
+<li>Para las ventas/cuotas de la ficha duplicada: editar cada una → reasignar al cliente bueno.</li>
+<li>Una vez sin ventas asociadas, borrar el duplicado.</li>
+</ol>
+<blockquote class="warn">⚠ Confirmar que sean la misma persona física antes de mergear. Dos clientes con mismo nombre pueden ser personas distintas (parentesco, homónimos).</blockquote>
 
-<h3>10.8. Borraste algo por error</h3>
-<p>El sistema tiene <strong>audit log</strong> de todas las acciones. Para pérdidas críticas: contactar al admin → tenemos backups semanales restaurables.</p>
+<h3>10.14. Nombre y apellido invertidos</h3>
+<p>A veces se carga "PEREZ JUAN" en Nombre y vacío en Apellido (o viceversa). En reportes el formato queda raro.</p>
+<p><strong>Arreglar:</strong> editar el cliente → mover el apellido al campo correcto → Guardar.</p>
+
+<h3>10.15. Venta con vendedor / sucursal mal asignados</h3>
+<p>Pasa cuando el vendedor cargó la venta desde la sucursal equivocada o se olvidó de elegir vendedor.</p>
+<p><strong>Arreglar:</strong> editar la venta → cambiar el campo <strong>Sucursal</strong> y/o <strong>Vendedor</strong> → Guardar. Las comisiones y reportes por sucursal se actualizan automáticamente.</p>
+
+<h3>10.16. Fecha de venta incorrecta (futuro o muy vieja)</h3>
+<p><strong>Síntomas:</strong> venta con fecha 01/01/1900, fechas futuras (ej. 2099), o fechas muy lejanas a cuando ocurrió realmente.</p>
+<p><strong>Arreglar:</strong> editar la venta → cambiar <strong>Fecha de venta</strong> al valor real. Esto NO afecta las cuotas (sus vencimientos quedan como están), pero sí afecta los reportes de "Ventas por período".</p>
+
+<h3>10.17. Borraste algo por error</h3>
+<p>El sistema tiene <strong>audit log</strong> de todas las acciones (crear/editar/borrar). Para pérdidas críticas: contactar al admin → tenemos backups semanales restaurables.</p>
+
+<h3>10.18. Cuando no estás seguro</h3>
+<p>Si encontrás una inconsistencia pero <strong>no sabés cómo arreglarla</strong>, NO improvices:</p>
+<ol>
+<li>Anotá en las <strong>notas del cliente o venta</strong>: qué viste, fecha, qué te dijo el cliente.</li>
+<li>Marcá la venta con un código tipo <code>REVISAR</code> en N° de venta para que sea fácil de filtrar después.</li>
+<li>Avisá al admin/dueño para que tome la decisión.</li>
+</ol>
+<blockquote class="tip">💡 Es preferible una venta con "dato pendiente" anotado que una venta editada con un dato inventado. El audit log preserva la historia, pero un cambio mal hecho puede romper los reportes.</blockquote>
 
 <h2 id="s11">11. Atajos y tips</h2>
 
