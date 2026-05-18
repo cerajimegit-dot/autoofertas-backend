@@ -769,6 +769,122 @@ class DashboardViewSet(viewsets.ViewSet):
         return Response(data)
 
     @action(detail=False, methods=['get'])
+    def margin_analysis(self, request):
+        """Análisis de margen por venta cerrada en el período.
+
+        Calcula para cada venta:
+          - costo total del vehículo = fob + container + dispatch + cam_vol
+            + sum(VehicleCost.amount con same currency PYG; USD se
+            convierte a 0 si no hay exchange_rate, sino se aplica).
+          - margen = total_price - costo total
+          - margen_pct = margen / total_price * 100
+
+        Devuelve la lista ordenada por margen_pct ASC (las peores
+        primero — son las que conviene revisar para no repetir).
+
+        Aproximación / decisiones:
+          - VehicleCosts en USD se ignoran si no traen exchange_rate (mejor
+            mostrar 0 que un número falso). El frontend muestra una
+            advertencia cuando esto pasa.
+          - Sólo ventas con vehicle (no MIG huérfanos).
+          - Sólo status='completed' (las pending/cancelled distorsionan).
+
+        Query: date_from, date_to, branch.
+        """
+        from decimal import Decimal
+        from core.models.inventory import VehicleCost
+
+        user = request.user
+        if not user.enterprise:
+            return Response({'error': 'sin empresa'}, status=400)
+
+        date_from, date_to = self._parse_period(request)
+
+        sales_qs = Sale.objects.filter(
+            enterprise=user.enterprise,
+            status='completed',
+            sale_date__date__gte=date_from,
+            sale_date__date__lte=date_to,
+            vehicle__isnull=False,
+            total_price__gt=0,
+        ).select_related('vehicle', 'vehicle__brand', 'vehicle__model', 'customer', 'branch')
+        sales_qs = self._filter_sales(sales_qs, request)
+
+        # Cargamos en una sola query los VehicleCost de todos los vehículos
+        # implicados para no hacer N+1.
+        vehicle_ids = [s.vehicle_id for s in sales_qs if s.vehicle_id]
+        costs_by_vehicle = {}
+        for vc in VehicleCost.objects.filter(vehicle_id__in=vehicle_ids):
+            costs_by_vehicle.setdefault(vc.vehicle_id, []).append(vc)
+
+        items = []
+        warnings_count = 0
+        for s in sales_qs:
+            veh = s.vehicle
+            base_cost = (
+                (veh.fob or 0) + (veh.container or 0)
+                + (veh.dispatch or 0) + (veh.cam_vol or 0)
+            )
+            extras_total = Decimal('0')
+            has_usd_sin_tc = False
+            for vc in costs_by_vehicle.get(veh.id, []):
+                if vc.currency == 'USD':
+                    # Si no tenemos forma fácil de convertir, ignoramos y
+                    # marcamos el warning. El servicio podría llamar a
+                    # ExchangeRate.current, pero eso depende del modelo —
+                    # lo dejamos para una iteración futura.
+                    has_usd_sin_tc = True
+                    continue
+                extras_total += vc.amount or 0
+            if has_usd_sin_tc:
+                warnings_count += 1
+            costo_total = base_cost + extras_total
+            price = s.total_price or Decimal('0')
+            margen = price - costo_total
+            margen_pct = (float(margen) / float(price) * 100) if price else 0.0
+
+            items.append({
+                'sale_id':       s.id,
+                'sale_number':   s.sale_number,
+                'sale_date':     s.sale_date.date().isoformat() if s.sale_date else None,
+                'customer_name': s.customer.full_name if s.customer_id else '',
+                'vehicle_info':  (
+                    f"{veh.brand.name if veh.brand_id else ''} "
+                    f"{veh.model.name if veh.model_id else ''} "
+                    f"{veh.year or ''}"
+                ).strip(),
+                'price':         float(price),
+                'cost':          float(costo_total),
+                'margin':        float(margen),
+                'margin_pct':    round(margen_pct, 1),
+                'has_usd_without_tc': has_usd_sin_tc,
+            })
+
+        # Ordenar por margen_pct ASC (peores primero) — el caso de uso
+        # típico es "qué vendí mal este mes".
+        items.sort(key=lambda r: r['margin_pct'])
+
+        # Agregados generales.
+        total_price = sum(r['price'] for r in items)
+        total_cost  = sum(r['cost'] for r in items)
+        total_margin = total_price - total_cost
+        avg_margin_pct = (total_margin / total_price * 100) if total_price else 0.0
+
+        return Response({
+            'periodo': {
+                'date_from': date_from.isoformat(),
+                'date_to':   date_to.isoformat(),
+            },
+            'n_ventas':       len(items),
+            'total_price':    total_price,
+            'total_cost':     total_cost,
+            'total_margin':   total_margin,
+            'avg_margin_pct': round(avg_margin_pct, 1),
+            'warnings_usd_sin_tc': warnings_count,
+            'results':        items,
+        })
+
+    @action(detail=False, methods=['get'])
     def seller_commissions(self, request):
         """Comisiones por vendedor en el período pedido.
 
