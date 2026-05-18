@@ -1,4 +1,4 @@
-# Informe nocturno — Pack 2 + 3
+# Informe nocturno — Pack 2 + 3 + 4
 
 > Bitácora del trabajo autónomo. Todo está en la branch `staging` de
 > ambos repos (`autoofertas-backend` y `autoofertas-frontend`).
@@ -8,13 +8,13 @@
 
 ## TL;DR
 
-- **9 features nuevas** entre Pack 2 y Pack 3, todas en `staging`.
-- **6 endpoints backend nuevos** + 3 mejoras a endpoints existentes.
-- **5 páginas/paneles frontend nuevos** y mejoras a 3 páginas.
-- **44 tests nuevos** (todos verdes). Suite total: **144 passed**.
-- **18 commits** entre los dos repos.
+- **12 features nuevas** entre Pack 2, 3 y 4, todas en `staging`.
+- **9 endpoints backend nuevos** + 3 mejoras a endpoints existentes.
+- **7 paneles/páginas frontend nuevos** y mejoras a 4 páginas.
+- **52 tests nuevos** (todos verdes). Suite total: **152 passed**.
+- **24 commits** entre los dos repos.
 - **0 cambios en BD producción**. Migración 0010 (B7 de Pack 1) sigue
-  pendiente de aplicar; nada nuevo del Pack 2/3 requiere migración.
+  pendiente de aplicar; nada del Pack 2/3/4 requiere migración.
 
 ---
 
@@ -174,14 +174,63 @@ este es para el flujo rápido "estoy mirando el dashboard, registro
 el cobro, sigo". Si necesitás editar el monto o el status,
 seguís usando el modal completo.
 
+### P3-F — Bulk WhatsApp en panel "A cobrar"
+**Frontend only**
+
+Checkboxes en cada fila del panel "A cobrar próximas". Cuando hay
+selección aparece la barra "N seleccionada(s)" con un botón
+"📱 Enviar a N" que abre todos los `wa.me/...` seleccionados con un
+stagger de 120ms entre uno y otro (evita el popup blocker).
+
+Si el navegador bloquea alguno, mostramos un alert con el conteo y
+la solución. Para no-clientes (sin teléfono) el checkbox está
+deshabilitado.
+
+---
+
+## Pack 4 (mejoras adicionales — el user me dijo que aproveche la noche)
+
+### P4-A — Export CSV de ventas
+**Backend**: `GET /api/sales/export/`
+**Frontend**: Botón "⬇ Exportar CSV" en /sales
+
+Mismo patrón que B1 (cash export). Acepta los filtros del listado +
+`period=YYYY-MM` shortcut + `delimiter=comma|semicolon`. Devuelve BOM
+UTF-8, cabecera, filas con cliente/vehículo/sucursal/vendedor/forma
+de pago, y una fila TOTAL al final. Tests: **5/5**.
+
+> El botón "📥 Exportar MIGs a Excel" sigue ahí — son cosas distintas
+> (CSV server-side con filtros vs XLSX client-side para migración).
+
+### P4-B — Análisis de margen por venta
+**Backend**: `GET /api/dashboard/margin_analysis/`
+**Frontend**: Panel "Análisis de margen por venta" en Dashboard
+
+Para cada venta cerrada del período:
+- **costo** = vehicle.fob + container + dispatch + cam_vol + Σ VehicleCost en PYG
+- **margen** = total_price − costo
+- **margin_pct** = margen / total_price * 100
+
+Tabla ordenada por margin_pct **ASC** (peores primero) — el caso de
+uso típico es "qué vendí mal este mes para no repetir".
+
+Encabezado con 4 KPIs: n_ventas, ingreso total, margen total,
+margen promedio. Cada margen va con color (rojo <0, ámbar <10,
+verde <25, emerald ≥25).
+
+**Cuidado**: `VehicleCost` en USD sin exchange_rate se contabiliza como 0 (mejor que un TC inventado). El panel muestra warning ámbar
+indicando cuántas ventas están afectadas y cómo corregirlo.
+
+Tests: **3/3**.
+
 ---
 
 ## Resumen de archivos modificados
 
 ### Backend (`playa`)
 ```
-core/views/dashboard.py      +281 (health, seller_commissions)
-core/views/sales.py          +131 (upcoming, ?seller filter)
+core/views/dashboard.py      +400 (health, seller_commissions, margin)
+core/views/sales.py          +220 (upcoming, ?seller, export)
 core/views/inventory.py      +49  (stuck)
 core/views/base.py           +34  (audit_log filters)
 tests/test_dashboard_health.py        nuevo (8 tests)
@@ -190,21 +239,23 @@ tests/test_vehicles_stuck.py          nuevo (7 tests)
 tests/test_seller_commissions.py      nuevo (6 tests)
 tests/test_sales_seller_filter.py     nuevo (3 tests)
 tests/test_audit_log_filters.py       nuevo (8 tests)
+tests/test_sales_export.py            nuevo (5 tests)
+tests/test_margin_analysis.py         nuevo (3 tests)
 INFORME_NOCTURNO.md                   actualizado
 ```
 
 ### Frontend (`playa-frontend`)
 ```
-src/utils/api.js              +6 endpoints
-src/pages/Dashboard.jsx       +320 (3 paneles + 1 modal)
+src/utils/api.js              +8 endpoints
+src/pages/Dashboard.jsx       +500 (5 paneles + 1 modal + bulk-wa)
 src/pages/CustomerDetail.jsx  +130 (notas + PDF dossier)
-src/pages/Vehicles.jsx        +12 (chip estancados)
-src/pages/Sales.jsx           +20 (chip "Mis ventas")
+src/pages/Vehicles.jsx        +12  (chip estancados)
+src/pages/Sales.jsx           +60  (chip "Mis ventas" + export CSV)
 src/pages/AuditLogs.jsx       nuevo (página completa)
 src/utils/printSchedule.js    +218 (dossier completo)
-src/components/Sidebar.jsx    +3 (link audit logs)
-src/App.jsx                   +6 (ruta /audit-logs)
-index.html                    +1 (carga AuditLogs.jsx)
+src/components/Sidebar.jsx    +3   (link audit logs)
+src/App.jsx                   +6   (ruta /audit-logs)
+index.html                    +1   (carga AuditLogs.jsx)
 ```
 
 ---
@@ -241,6 +292,16 @@ index.html                    +1 (carga AuditLogs.jsx)
    exactamente esto, registro". Para cobros parciales o ajustes, hay
    que usar el modal completo de CustomerDetail.
 
+8. **P3-F bulk WhatsApp con stagger de 120ms**. Chrome bloquea popups
+   en loop apretado. El stagger es el menor que probé que funciona en
+   los 3 navegadores principales sin bloqueos.
+
+9. **P4-B contabiliza VehicleCost en USD como 0 si no hay TC**. La
+   alternativa era usar el TC actual o el TC de la fecha de la venta,
+   pero ambos son aproximaciones que pueden inflar/desinflar el
+   margen real. Mejor reportar el problema con un warning explícito
+   y dejar que el operador decida cómo arreglarlo.
+
 ---
 
 ## Pendientes operativos
@@ -261,17 +322,25 @@ Estos son ítems que dependen de vos (yo no puedo hacerlos):
 
 ## Por qué paré
 
-Llegué a 9 features sólidas con cobertura de tests. Las siguientes
-candidatas eran:
-- **Búsqueda fuzzy de vehículos** (extender pg_trgm a la tabla
-  Vehicle por VIN). Útil pero requiere migración nueva.
+Llegué a 12 features sólidas con cobertura de tests. Las branches
+están limpias, los tests verdes, los commits son atómicos y cada
+feature está documentada acá.
+
+Cosas que NO hice (deliberadamente):
+
+- **Búsqueda fuzzy de vehículos por VIN** (extender pg_trgm a la tabla
+  Vehicle). Requiere migración nueva — preferí no agregar otra al
+  pendiente.
 - **Heatmap de cobros por día del mes**. Implica nuevo componente
-  Chart.js — mejor cuando tengas data real para probarlo.
+  Chart.js — mejor verlo en vivo con data real para validar diseño.
 - **Modo oscuro**. Bajo valor para una herramienta de trabajo
-  diurno; mejor postergar.
+  diurno; mejor postergar a una sesión donde diseñemos el tema.
+- **Eliminar ventas MIG**. Decisión que tomamos en la conversación
+  previa: NO borrar nada de la migración. Quedan visibles con el
+  chip de calidad.
 
-Si querés que siga con alguna de esas (o tenés otra prioridad),
-decime y le doy. Por ahora dejo las branches limpias para tu
-revisión.
+Si querés que siga con alguna otra cosa cuando vuelvas, las branches
+están listas. Mientras tanto, queda la revisión humana del trabajo
+de la noche.
 
-— Última actualización: cierre del Pack 3.
+— Última actualización: cierre del Pack 4.
