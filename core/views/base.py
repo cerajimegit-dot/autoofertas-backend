@@ -297,16 +297,49 @@ class BranchViewSet(viewsets.ModelViewSet):
 
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet de solo lectura para los registros de auditoría"""
+    """ViewSet de solo lectura para los registros de auditoría.
+
+    Filtros (todos opcionales, vía query params):
+      - `action`: create | update | delete | login | logout | export | import
+      - `model`: nombre del modelo (Sale, Customer, etc.) — match exacto.
+      - `user`: id del usuario que ejecutó la acción.
+      - `date_from`, `date_to`: rango (timestamps tipo YYYY-MM-DD).
+      - `q`: substring en `object_str` (ej: número de venta, nombre cliente).
+
+    Acceso: sólo admins de la empresa (IsAdmin), salvo superuser que ve todo.
+    """
     queryset = AuditLog.objects.all()
     serializer_class = AuditLogSerializer
     permission_classes = [IsAdmin]
-    
+
     def get_queryset(self):
-        # Los admins solo ven auditoría de su empresa
-        if self.request.user and self.request.user.is_authenticated:
-            if self.request.user.is_superuser:
-                return AuditLog.objects.all()
-            if self.request.user.enterprise:
-                return AuditLog.objects.filter(enterprise=self.request.user.enterprise)
-        return AuditLog.objects.none()
+        user = self.request.user
+        if not (user and user.is_authenticated):
+            return AuditLog.objects.none()
+
+        # Base con select_related para evitar N+1 al serializar user__username.
+        qs = AuditLog.objects.select_related('user', 'enterprise')
+
+        if user.is_superuser:
+            pass  # ve todo
+        elif user.enterprise:
+            qs = qs.filter(enterprise=user.enterprise)
+        else:
+            return AuditLog.objects.none()
+
+        params = self.request.query_params
+        if action := params.get('action'):
+            qs = qs.filter(action=action)
+        if model_name := params.get('model'):
+            qs = qs.filter(model_name__iexact=model_name)
+        if user_id := params.get('user'):
+            if str(user_id).isdigit():
+                qs = qs.filter(user_id=int(user_id))
+        if date_from := params.get('date_from'):
+            qs = qs.filter(timestamp__date__gte=date_from)
+        if date_to := params.get('date_to'):
+            qs = qs.filter(timestamp__date__lte=date_to)
+        if q := (params.get('q') or '').strip():
+            qs = qs.filter(object_str__icontains=q)
+
+        return qs.order_by('-timestamp')
