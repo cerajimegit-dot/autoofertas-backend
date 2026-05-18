@@ -261,6 +261,92 @@ class SaleViewSet(viewsets.ModelViewSet):
     """ViewSet para gestión de ventas"""
     permission_classes = [IsAuthenticated, IsEnterpriseOwnerOrAdmin, CanDeleteSale]
 
+    @action(detail=False, methods=['get'], url_path='export')
+    def export_csv(self, request):
+        """Exporta las ventas filtradas como CSV.
+
+        Acepta los mismos filtros que el listado (`branch`, `status`,
+        `customer`, `seller`, `date_from`, `date_to`) y además:
+          - `period=YYYY-MM`: shortcut para mes completo.
+          - `delimiter=comma|semicolon`: default semicolon.
+
+        Devuelve BOM UTF-8 + cabeceras + filas + 1 fila final con el
+        total del período. Filename inteligente según los filtros.
+        """
+        import csv as _csv, io as _io
+        from calendar import monthrange as _monthrange
+        from django.http import HttpResponse as _HttpResponse
+
+        # Misma lógica de ?period= que en cash_movements.export_csv —
+        # lo dejamos local para no acoplar las dos vistas.
+        params = request.query_params.copy()
+        period = params.get('period')
+        if period and not (params.get('date_from') or params.get('date_to')):
+            try:
+                y, m = period.split('-')
+                y, m = int(y), int(m)
+                last = _monthrange(y, m)[1]
+                params['date_from'] = f'{y:04d}-{m:02d}-01'
+                params['date_to']   = f'{y:04d}-{m:02d}-{last:02d}'
+                # Reasignamos para que get_queryset las vea.
+                request._request.GET = params
+            except (ValueError, IndexError):
+                pass
+
+        qs = self.get_queryset().order_by('sale_date')
+        delim = ',' if params.get('delimiter') == 'comma' else ';'
+
+        buf = _io.StringIO()
+        buf.write('﻿')  # BOM
+        writer = _csv.writer(buf, delimiter=delim, lineterminator='\r\n')
+        writer.writerow([
+            'Número', 'Fecha', 'Cliente', 'Documento', 'Vehículo', 'VIN',
+            'Sucursal', 'Vendedor', 'Forma de pago', 'Estado',
+            'Total Gs.', 'Seña Gs.', 'Cobranza',
+        ])
+
+        total = 0.0
+        for s in qs:
+            cust = s.customer
+            veh = s.vehicle
+            writer.writerow([
+                s.sale_number or '',
+                s.sale_date.date().isoformat() if s.sale_date else '',
+                cust.full_name if cust else '',
+                cust.document_number if cust else '',
+                (f"{veh.brand.name if veh and veh.brand_id else ''} "
+                 f"{veh.model.name if veh and veh.model_id else ''} "
+                 f"{veh.year if veh else ''}").strip() if veh else '',
+                veh.vin if veh else '',
+                s.branch.name if s.branch_id else '',
+                (s.seller.get_full_name() if s.seller_id else '') or (s.seller.username if s.seller_id else ''),
+                s.payment_form.name if s.payment_form_id else '',
+                s.get_status_display() if s.status else '',
+                f'{s.total_price:.2f}' if s.total_price is not None else '',
+                f'{s.down_payment:.2f}' if s.down_payment else '',
+                # collection_status es @property en el modelo
+                getattr(s, 'collection_status', '') or '',
+            ])
+            total += float(s.total_price or 0)
+
+        writer.writerow([])
+        writer.writerow(['', '', '', '', '', '', '', '', '', 'TOTAL', f'{total:.2f}', '', ''])
+
+        # Filename
+        if period:
+            tag = period
+        elif params.get('date_from') and params.get('date_to'):
+            tag = f"{params['date_from']}_a_{params['date_to']}"
+        else:
+            from datetime import date as _date
+            tag = _date.today().isoformat()
+        filename = f'ventas_{tag}.csv'
+
+        response = _HttpResponse(buf.getvalue().encode('utf-8'),
+                                 content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
     @action(detail=False, methods=['get'])
     def search(self, request):
         """Busca ventas para el palette global (Ctrl+K).
