@@ -2,7 +2,9 @@ import re
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Q, Count, Sum, F
+from django.db.models import Q, Count, Sum, F, Value
+from django.db.models.functions import Concat, Lower
+from django.db import connection
 from datetime import datetime, timedelta
 
 from core.models import Customer, PaymentForm, Sale, Quotum
@@ -36,6 +38,127 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(enterprise=self.request.user.enterprise)
+
+    # Cache de feature-flag: ¿está disponible pg_trgm en la BD? Lo
+    # determinamos una sola vez (al primer request) para no hacer un
+    # SELECT extra en cada búsqueda. Es seguro cachear a nivel de clase
+    # porque, durante la vida del proceso, la disponibilidad de la
+    # extensión no va a cambiar.
+    _pg_trgm_available = None
+
+    @classmethod
+    def _has_pg_trgm(cls):
+        if cls._pg_trgm_available is None:
+            if connection.vendor != 'postgresql':
+                cls._pg_trgm_available = False
+            else:
+                try:
+                    with connection.cursor() as c:
+                        c.execute("SELECT similarity('a', 'a');")
+                        c.fetchone()
+                    cls._pg_trgm_available = True
+                except Exception:
+                    cls._pg_trgm_available = False
+        return cls._pg_trgm_available
+
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        """Busca clientes por nombre, apellido, documento, email o teléfono.
+
+        Usa `pg_trgm` cuando está disponible (Postgres con la extensión
+        habilitada) — eso tolera typos: "Cristian" matchea "Kristian",
+        "Garcia" matchea "García", etc. La similaridad se ordena de mayor
+        a menor.
+
+        Si la extensión no está (SQLite local, o Supabase sin habilitar
+        la extensión todavía), cae a un fallback que parte la query en
+        tokens y exige que CADA token aparezca en algún campo (ILIKE
+        substring). Eso da matches razonables aunque no tolera typos.
+
+        Acepta:
+          - `q=...`: la cadena de búsqueda (requerido, ≥ 2 caracteres)
+          - `limit=...`: máximo de resultados (default 10, máximo 50)
+        """
+        q = (request.query_params.get('q') or '').strip()
+        if len(q) < 2:
+            return Response({'results': [], 'used': 'none'})
+
+        try:
+            limit = min(int(request.query_params.get('limit', 10)), 50)
+        except ValueError:
+            limit = 10
+
+        qs = self.get_queryset()
+
+        if self._has_pg_trgm():
+            results = self._search_pg_trgm(qs, q, limit)
+            backend_used = 'pg_trgm'
+        else:
+            results = self._search_fallback(qs, q, limit)
+            backend_used = 'ilike'
+
+        return Response({
+            'results': CustomerSerializer(results, many=True).data,
+            'used': backend_used,
+        })
+
+    @staticmethod
+    def _search_pg_trgm(qs, q, limit):
+        """Búsqueda con scoring de similaridad. Sólo Postgres + pg_trgm."""
+        # Concatenamos nombre completo lowercased — el índice GIN que
+        # creamos en la migración 0010 está sobre la misma expresión, así
+        # que esto debería usarlo (chequeable con EXPLAIN).
+        # `extra` es la única forma cómoda de usar `similarity()` en Django
+        # sin escribir una función personalizada — DRF ORM no la expone.
+        q_lower = q.lower()
+        return list(
+            qs.extra(
+                select={
+                    'sim_name': (
+                        "similarity("
+                        "  LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')),"
+                        "  %s"
+                        ")"
+                    ),
+                    'sim_doc': "similarity(document_number, %s)",
+                },
+                select_params=[q_lower, q],
+                where=[
+                    # Umbral 0.2 = razonablemente permisivo. Subir si vienen
+                    # demasiados falsos positivos en producción.
+                    "(LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) %% %s"
+                    " OR document_number %% %s"
+                    " OR LOWER(COALESCE(email, '')) LIKE %s"
+                    " OR phone LIKE %s)"
+                ],
+                params=[q_lower, q, f'%{q_lower}%', f'%{q}%'],
+                order_by=['-sim_name', '-sim_doc'],
+            )[:limit]
+        )
+
+    @staticmethod
+    def _search_fallback(qs, q, limit):
+        """Fallback sin pg_trgm: partir en tokens y exigir match de TODOS.
+
+        Funciona en SQLite (tests) y en Postgres sin la extensión.
+        Cubre el caso típico: el usuario tipea "carlos perez 12345" y se
+        espera matchear contra alguien que tenga "Carlos" Y "Pérez" Y
+        "12345" en alguno de los campos.
+        """
+        tokens = [t for t in q.split() if t]
+        if not tokens:
+            return []
+        for tok in tokens:
+            qs = qs.filter(
+                Q(first_name__icontains=tok)
+                | Q(last_name__icontains=tok)
+                | Q(document_number__icontains=tok)
+                | Q(email__icontains=tok)
+                | Q(phone__icontains=tok)
+            )
+        # Ordenamos por -id como proxy de "más recientes primero" — sin
+        # similaridad, no hay un score razonable.
+        return list(qs.order_by('-id')[:limit])
 
     @action(detail=True, methods=['get'])
     def full(self, request, pk=None):
