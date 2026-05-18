@@ -61,6 +61,46 @@ class CustomerViewSet(viewsets.ModelViewSet):
                     cls._pg_trgm_available = False
         return cls._pg_trgm_available
 
+    @action(detail=False, methods=['get'], url_path='export')
+    def export_csv(self, request):
+        """Exporta el listado de clientes como CSV.
+
+        Acepta `delimiter=comma|semicolon` (default semicolon, igual que
+        cash/sales). Devuelve BOM UTF-8 + cabecera + filas con todos los
+        campos relevantes para reportes contables y CRM.
+        """
+        import csv as _csv, io as _io
+        from django.http import HttpResponse as _HttpResponse
+        from datetime import date as _date
+
+        qs = self.get_queryset()
+        delim = ',' if request.query_params.get('delimiter') == 'comma' else ';'
+
+        buf = _io.StringIO()
+        buf.write('﻿')  # BOM
+        writer = _csv.writer(buf, delimiter=delim, lineterminator='\r\n')
+        writer.writerow([
+            'ID', 'Nombre', 'Apellido', 'Documento', 'Tipo doc',
+            'Email', 'Teléfono', 'Ciudad', 'Dirección',
+            'Ventas (cantidad)', 'Creado', 'Notas',
+        ])
+        for c in qs:
+            writer.writerow([
+                c.id, c.first_name or '', c.last_name or '',
+                c.document_number or '',
+                c.get_document_type_display() if c.document_type else '',
+                c.email or '', c.phone or '', c.city or '', c.address or '',
+                getattr(c, 'sales_count', '') or 0,
+                c.created_at.date().isoformat() if c.created_at else '',
+                (c.notes or '').replace('\n', ' / ').replace('\r', ' '),
+            ])
+
+        filename = f'clientes_{_date.today().isoformat()}.csv'
+        response = _HttpResponse(buf.getvalue().encode('utf-8'),
+                                 content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
     @action(detail=False, methods=['get'])
     def search(self, request):
         """Busca clientes por nombre, apellido, documento, email o teléfono.
