@@ -1,9 +1,13 @@
 """Endpoints de movimientos de caja (CashMovement)."""
 
+import csv
+import io
+from calendar import monthrange
 from datetime import datetime, date
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.http import HttpResponse
 from django.db.models import Sum, Count, Q
 
 from core.models import CashMovement
@@ -35,6 +39,19 @@ class CashMovementViewSet(viewsets.ModelViewSet):
         params = self.request.query_params
         date_from = params.get('date_from')
         date_to = params.get('date_to')
+        # Shortcut: ?period=YYYY-MM equivale a el mes completo. Útil para
+        # el contador, que cierra caja mes por mes ("flujo de mayo 2026").
+        # Si vienen date_from/date_to explícitos, esos ganan.
+        period = params.get('period')
+        if period and not (date_from or date_to):
+            try:
+                yyyy, mm = period.split('-')
+                y, m = int(yyyy), int(mm)
+                last_day = monthrange(y, m)[1]
+                date_from = f'{y:04d}-{m:02d}-01'
+                date_to = f'{y:04d}-{m:02d}-{last_day:02d}'
+            except (ValueError, IndexError):
+                pass  # ignoramos period malformado en silencio
         if date_from:
             qs = qs.filter(date__gte=date_from)
         if date_to:
@@ -123,6 +140,104 @@ class CashMovementViewSet(viewsets.ModelViewSet):
             'neto': float((in_total['total'] or 0) - (out_total['total'] or 0)),
             'by_kind': by_kind_data,
         })
+
+    @action(detail=False, methods=['get'], url_path='export')
+    def export_csv(self, request):
+        """Exporta los movimientos filtrados como CSV.
+
+        Acepta los mismos query params que el listado (date_from, date_to,
+        branch, kind, direction, is_auto) y además:
+          - `period=YYYY-MM` (shortcut para el mes completo)
+          - `delimiter=comma|semicolon` (por default semicolon — Excel ES
+            usa `,` como separador decimal, así que `;` evita conflictos
+            cuando un monto se rompe en dos columnas).
+
+        El archivo arranca con BOM UTF-8 (﻿) para que Excel español
+        muestre los acentos sin pedir importación manual.
+
+        Al final agrega tres filas con totales (Ingresos, Egresos, Neto)
+        para que no haya que sumar a mano.
+        """
+        qs = self.get_queryset()
+        # Iteramos en orden cronológico ascendente para el CSV (más natural
+        # para revisar un mes que el orden por defecto -date).
+        rows = list(qs.order_by('date', 'created_at'))
+
+        delimiter_param = request.query_params.get('delimiter', 'semicolon')
+        delim = ',' if delimiter_param == 'comma' else ';'
+
+        # Buffer en memoria. Para los volúmenes esperados (cientos/miles
+        # de filas por mes, máximo) no necesitamos StreamingHttpResponse.
+        buf = io.StringIO()
+        buf.write('﻿')  # BOM UTF-8 para Excel
+        writer = csv.writer(buf, delimiter=delim, lineterminator='\r\n')
+
+        writer.writerow([
+            'Fecha', 'Sucursal', 'Tipo', 'Dirección', 'Operación',
+            'Monto', 'Moneda', 'Monto USD', 'TC',
+            'Proveedor', 'Venta', 'Cuota', 'Notas',
+            'Creado por', 'Auto',
+        ])
+
+        kind_labels = dict(CashMovement.KIND_CHOICES)
+        dir_labels = dict(CashMovement.DIRECTION_CHOICES)
+        total_in = 0
+        total_out = 0
+        for m in rows:
+            writer.writerow([
+                m.date.isoformat() if m.date else '',
+                m.branch.name if m.branch_id else '',
+                str(kind_labels.get(m.kind, m.kind)),
+                str(dir_labels.get(m.direction, m.direction)),
+                m.description or '',
+                f'{m.amount:.2f}' if m.amount is not None else '',
+                m.currency or '',
+                f'{m.amount_usd:.2f}' if m.amount_usd is not None else '',
+                f'{m.exchange_rate:.2f}' if m.exchange_rate is not None else '',
+                m.provider or '',
+                getattr(m.sale, 'sale_number', '') if m.sale_id else '',
+                m.quota_id or '',
+                (m.notes or '').replace('\n', ' / ').replace('\r', ' '),
+                m.created_by.get_full_name() if m.created_by_id else '',
+                'Sí' if m.is_auto else 'No',
+            ])
+            if m.direction == 'in':
+                total_in += float(m.amount or 0)
+            else:
+                total_out += float(m.amount or 0)
+
+        # Línea en blanco + totales (15 columnas para alinear con la cabecera).
+        writer.writerow([])
+        writer.writerow(['', '', '', '', 'TOTAL INGRESOS', f'{total_in:.2f}',
+                         '', '', '', '', '', '', '', '', ''])
+        writer.writerow(['', '', '', '', 'TOTAL EGRESOS', f'{total_out:.2f}',
+                         '', '', '', '', '', '', '', '', ''])
+        writer.writerow(['', '', '', '', 'NETO', f'{(total_in - total_out):.2f}',
+                         '', '', '', '', '', '', '', '', ''])
+
+        # Nombre de archivo que tenga sentido al guardarse.
+        params = request.query_params
+        period = params.get('period')
+        date_from = params.get('date_from')
+        date_to = params.get('date_to')
+        if period:
+            tag = period
+        elif date_from and date_to:
+            tag = f'{date_from}_a_{date_to}'
+        elif date_from:
+            tag = f'desde_{date_from}'
+        elif date_to:
+            tag = f'hasta_{date_to}'
+        else:
+            tag = datetime.now().strftime('%Y-%m-%d')
+        filename = f'flujo_caja_{tag}.csv'
+
+        response = HttpResponse(
+            buf.getvalue().encode('utf-8'),
+            content_type='text/csv; charset=utf-8',
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
 
     @action(detail=False, methods=['get'])
     def kinds(self, request):
