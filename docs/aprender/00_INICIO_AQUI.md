@@ -39,6 +39,18 @@ Si te trabás en uno, **NO saltees al siguiente**. Anotá la duda en
 
 ---
 
+## Bonus — ChatGPT como asistente
+
+Si vas a usar ChatGPT (versión gratis) para consultarle dudas, leé
+antes **`CHATGPT_METAPROMPT.md`**. Tiene un texto para pegar al inicio
+de cada conversación que le da contexto de tu setup y evita que te
+sugiera cosas peligrosas (como conectar a Postgres).
+
+También te da tips de cómo hacer buenas preguntas y qué respuestas
+no aceptar.
+
+---
+
 ## Después de terminar
 
 Cuando termines el archivo 07:
