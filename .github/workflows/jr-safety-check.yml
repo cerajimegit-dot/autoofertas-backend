@@ -1,0 +1,120 @@
+name: Jr Safety Barriers
+
+# ============================================================================
+# Verifica que las barreras que protegen al Jr de conectarse a produccion
+# esten intactas en cualquier PR relacionado con el Jr.
+#
+# Bloquea el PR si:
+#   1. Se borra .jr_mode
+#   2. Se remueve el chequeo JR_MODE_MARKER en settings.py
+#   3. Se agrega DATABASE_URL o menciona postgres en .env.example
+#
+# Cuando se dispara:
+#   - PRs con head branch que empieza con jr/  (todos los PRs del Jr)
+#   - PRs cuyo base branch es jr/onboarding    (cambios que se mergean al Jr)
+# ============================================================================
+
+on:
+  pull_request:
+    branches:
+      - jr/**
+    types: [opened, synchronize, reopened]
+  # Tambien correr para PRs desde jr/* a cualquier branch (staging, main)
+  # para prevenir que codigo del Jr se mergee con las barreras rotas.
+
+jobs:
+  verify-barriers:
+    name: Verificar barreras Jr
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Traer el HEAD del PR (no el merge commit)
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Detectar rama del PR
+        id: detect
+        run: |
+          echo "head_ref=${{ github.head_ref }}"
+          echo "base_ref=${{ github.base_ref }}"
+          # Aplica el check si la rama origen o destino es jr/*
+          IS_JR="no"
+          case "${{ github.head_ref }}" in
+            jr/*) IS_JR="yes" ;;
+          esac
+          case "${{ github.base_ref }}" in
+            jr/*) IS_JR="yes" ;;
+          esac
+          echo "is_jr_related=$IS_JR" >> "$GITHUB_OUTPUT"
+
+      - name: Verificar archivo .jr_mode
+        if: steps.detect.outputs.is_jr_related == 'yes'
+        run: |
+          if [ ! -f .jr_mode ]; then
+            echo "::error::Barrera 2 rota: el archivo .jr_mode fue borrado."
+            echo "::error::Esta barrera previene que el Jr se conecte por error a la BD de prod."
+            echo "::error::Restauralo antes de mergear."
+            exit 1
+          fi
+          echo "OK — .jr_mode existe"
+
+      - name: Verificar barrera en settings.py
+        if: steps.detect.outputs.is_jr_related == 'yes'
+        run: |
+          if ! grep -q "JR_MODE_MARKER" playas_autos/settings.py; then
+            echo "::error::Barrera 2 rota: settings.py no tiene el chequeo JR_MODE_MARKER."
+            echo "::error::Sin esto, la barrera fisica queda desactivada."
+            exit 1
+          fi
+          if ! grep -q "JR_MODE activo" playas_autos/settings.py; then
+            echo "::error::Barrera 2 rota: settings.py no tiene el mensaje de error de la barrera."
+            exit 1
+          fi
+          echo "OK — settings.py tiene el chequeo"
+
+      - name: Verificar .env.example limpio
+        if: steps.detect.outputs.is_jr_related == 'yes'
+        run: |
+          if grep -qi "DATABASE_URL" .env.example; then
+            echo "::error::Barrera 3 rota: .env.example menciona DATABASE_URL."
+            echo "::error::En jr/onboarding el .env.example NO debe mencionar Postgres."
+            exit 1
+          fi
+          if grep -qi "postgres" .env.example; then
+            echo "::error::Barrera 3 rota: .env.example menciona 'postgres'."
+            echo "::error::Debe forzar solo SQLite para el Jr."
+            exit 1
+          fi
+          echo "OK — .env.example esta limpio"
+
+      - name: Verificar que no se metieron .bat de prod
+        if: steps.detect.outputs.is_jr_related == 'yes'
+        run: |
+          BATS=$(find scripts/ -name "aplicar_*_a_prod*.bat" -o -name "aplicar_*prod*.bat" 2>/dev/null | head)
+          if [ -n "$BATS" ]; then
+            echo "::error::Se agregaron .bat de produccion a la rama Jr:"
+            echo "$BATS" | while read f; do
+              echo "::error::  $f"
+            done
+            echo "::error::Esos scripts NO deben estar en jr/*."
+            exit 1
+          fi
+          echo "OK — no hay .bat de prod"
+
+      - name: Barrera completa (resumen)
+        if: steps.detect.outputs.is_jr_related == 'yes'
+        run: |
+          echo "===================================================="
+          echo "TODAS LAS BARRERAS ESTAN INTACTAS EN ESTE PR"
+          echo "===================================================="
+          echo "  .jr_mode: presente"
+          echo "  settings.py: JR_MODE_MARKER presente"
+          echo "  .env.example: limpio de postgres/DATABASE_URL"
+          echo "  scripts/: sin aplicar_*_a_prod.bat"
+
+      - name: PR no relacionado con Jr
+        if: steps.detect.outputs.is_jr_related != 'yes'
+        run: |
+          echo "Este PR no es de la rama jr/*, saltando verificacion."

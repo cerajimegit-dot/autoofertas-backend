@@ -28,7 +28,7 @@ Por eso pusimos 3 barreras que te van a proteger.
 
 ---
 
-## Las 3 barreras
+## Las 4 barreras
 
 ### Barrera 1 — Archivos peligrosos no están en la rama
 
@@ -63,6 +63,28 @@ No importa qué haya en tu `.env` — Django ignora `DB_ENGINE=postgres`.
 Cuando copiás `.env.example` como `.env`, no vas a ver ni siquiera
 la variable `DATABASE_URL`. No hay tentación de completarla ni pistas
 de que exista una BD remota.
+
+### Barrera 4 — GitHub Action bloquea PRs sin barreras
+
+En `.github/workflows/jr-safety-check.yml` hay un **check automático**
+que se corre en cada PR desde `jr/*` o hacia `jr/*`. Verifica que:
+
+1. El archivo `.jr_mode` sigue existiendo
+2. `settings.py` sigue teniendo el chequeo `JR_MODE_MARKER`
+3. `.env.example` no menciona `DATABASE_URL` ni `postgres`
+4. No hay `.bat` de producción agregados
+
+Si algún check falla, GitHub **no deja mergear** el PR. Se ve así en la UI:
+
+```
+❌ Verificar barreras Jr — check failed
+```
+
+El senior puede ver el detalle del fallo y decidir qué hacer.
+
+**Esto significa**: aunque vos como Jr borres una barrera por error en tu
+código y hagas PR, el sistema te lo va a rechazar automáticamente. Es
+un doble candado.
 
 ---
 
