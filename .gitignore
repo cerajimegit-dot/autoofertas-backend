@@ -157,3 +157,10 @@ final_output.txt
 link_all_data_output.txt
 stock - copia.db
 stock.db
+
+# Onboarding Jr - datos y mappings (NO commitear)
+db_jr.sqlite3
+db_synthetic.sqlite3
+obfuscation_mapping.csv
+docs/jr/_name_mapping.csv
+docs/jr/paquete_jr/
