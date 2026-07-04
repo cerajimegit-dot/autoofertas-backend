@@ -1,0 +1,15 @@
+Marcador de JR_MODE — NO borrar.
+
+Este archivo activa una barrera en playas_autos/settings.py que fuerza
+DB_ENGINE=sqlite y rechaza cualquier intento de usar Postgres.
+
+Si vos sos el Jr:
+  - NO borres este archivo.
+  - Trabajás con SQLite local generado por scripts/seed_synthetic.py.
+  - Nunca necesitás conectarte a la BD real de la empresa.
+
+Si vos sos el senior y necesitás tocar prod:
+  - Cambiate a la rama `main` o `staging` (que NO tienen este archivo).
+  - Nunca borres este archivo directamente en `jr/onboarding`.
+
+Ver docs/aprender/SAFETY.md para el detalle completo.

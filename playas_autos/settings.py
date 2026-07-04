@@ -92,7 +92,38 @@ WSGI_APPLICATION = 'playas_autos.wsgi.application'
 # Database
 # DB_ENGINE: "sqlite" (default) o "postgres"
 # Para Postgres, definir DATABASE_URL en .env (formato: postgresql://user:pass@host:port/dbname)
-DB_ENGINE = config('DB_ENGINE', default='sqlite')
+
+# ==========================================================================
+# BARRERA DE SEGURIDAD JR_MODE
+# --------------------------------------------------------------------------
+# Si en la raiz del repo existe el archivo `.jr_mode`, se FUERZA SQLite y
+# se rechaza cualquier intento de usar Postgres. Esto evita que el Jr se
+# conecte por error a la BD de produccion, aunque haya seteado
+# DB_ENGINE=postgres en el .env o DATABASE_URL apunte a Supabase.
+#
+# Para desactivar: borrar el archivo `.jr_mode` (Jr NO debe borrarlo).
+# ==========================================================================
+JR_MODE_MARKER = BASE_DIR / '.jr_mode'
+if JR_MODE_MARKER.exists():
+    from django.core.exceptions import ImproperlyConfigured
+    if config('DB_ENGINE', default='sqlite') == 'postgres':
+        raise ImproperlyConfigured(
+            '\n\n'
+            '========================================================================\n'
+            'BLOQUEADO: JR_MODE activo (.jr_mode existe en la raiz del repo).\n'
+            'DB_ENGINE=postgres esta prohibido en esta rama de trabajo.\n'
+            '\n'
+            'Que hacer:\n'
+            '  - Usa DB_ENGINE=sqlite en tu .env\n'
+            '  - Si sos el senior y queres tocar prod, cloná otra rama (main o'
+            ' staging) sin el archivo .jr_mode\n'
+            '\n'
+            'Detalle: docs/aprender/SAFETY.md\n'
+            '========================================================================\n'
+        )
+    DB_ENGINE = 'sqlite'
+else:
+    DB_ENGINE = config('DB_ENGINE', default='sqlite')
 
 if DB_ENGINE == 'postgres':
     import dj_database_url

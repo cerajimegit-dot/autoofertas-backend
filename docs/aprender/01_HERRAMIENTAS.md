@@ -193,6 +193,22 @@ Si aún no tenés:
 
 ---
 
+## Chequeo de seguridad (importante)
+
+Antes de arrancar cualquier tarea, correr:
+
+```cmd
+cd C:\Users\TUUSUARIO\CascadeProjects\playa
+venv\Scripts\python.exe scripts\verify_jr_safety.py
+```
+
+Deberías ver "TODAS LAS BARRERAS ESTAN ACTIVAS ✓".
+
+Si sale error, **NO CORRAS NADA MÁS** y contactá al senior. Detalle
+completo de por qué existen las barreras: `docs/aprender/SAFETY.md`.
+
+---
+
 ## Chequeo final
 
 Después de este archivo, deberías tener:
