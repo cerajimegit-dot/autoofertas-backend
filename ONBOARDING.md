@@ -2,6 +2,11 @@
 
 > Esta guía te lleva de **PC vacía a productivo en ~2 horas**. Después
 > tenés 8 patrones concretos para revisar a mano en los datos.
+>
+> **⚠ Si sos estudiante sin experiencia previa**: NO empieces por acá.
+> Andá primero a **[`docs/aprender/00_INICIO_AQUI.md`](docs/aprender/00_INICIO_AQUI.md)**
+> que es una guía progresiva de 10 horas cubriendo Python, Django,
+> React y Git desde cero. Cuando termines esa, volvé acá.
 
 ---
 
