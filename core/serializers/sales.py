@@ -100,7 +100,8 @@ class SaleDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sale
         fields = (
-            'id', 'sale_number', 'sale_date', 'branch', 'branch_name',
+            'id', 'sale_number', 'sale_date', 'payment_date',
+            'branch', 'branch_name',
             'customer', 'customer_detail', 'vehicle', 'vehicle_detail',
             'unit_price', 'discount', 'total_price', 'down_payment',
             'payment_form', 'payment_form_detail', 'seller', 'seller_name',

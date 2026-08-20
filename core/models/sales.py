@@ -183,7 +183,16 @@ class Sale(models.Model):
         default=timezone.now,
         verbose_name=_('Fecha de Venta')
     )
-    
+    # Fecha en la que efectivamente ingresó el dinero (cobro contado o
+    # entrega inicial). Puede diferir de sale_date cuando la venta se firma
+    # un día y el cobro cae en otro. Si es NULL se usa sale_date para el
+    # CashMovement automático.
+    payment_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_('Fecha del Cobro / Entrega'),
+    )
+
     # Cliente
     customer = models.ForeignKey(
         Customer,
@@ -486,15 +495,18 @@ class Sale(models.Model):
 
         pf_name = (self.payment_form.name.upper() if self.payment_form else '')
         sale_date = self.sale_date.date() if hasattr(self.sale_date, 'date') else self.sale_date
+        # Si se especifico payment_date, usar esa fecha para el CashMovement;
+        # si no, cae a la fecha de la venta (comportamiento anterior).
+        movement_date = self.payment_date or sale_date
 
-        # Venta contado: el monto total ingresa el día de la venta.
+        # Venta contado: el monto total ingresa el día del cobro.
         if 'CONTADO' in pf_name:
             CashMovement.objects.update_or_create(
                 sale=self, kind='venta_contado',
                 defaults={
                     'enterprise': self.enterprise,
                     'branch': self.branch,
-                    'date': sale_date,
+                    'date': movement_date,
                     'direction': 'in',
                     'amount': self.total_price,
                     'description': f'Venta contado {self.sale_number}',
@@ -508,14 +520,14 @@ class Sale(models.Model):
                 sale=self, kind='venta_contado', is_auto=True,
             ).delete()
 
-        # Seña de crédito: ingresa el día de la venta si down_payment > 0.
+        # Seña de crédito: ingresa el día de la entrega si down_payment > 0.
         if self.down_payment and float(self.down_payment) > 0:
             CashMovement.objects.update_or_create(
                 sale=self, kind='seña_credito',
                 defaults={
                     'enterprise': self.enterprise,
                     'branch': self.branch,
-                    'date': sale_date,
+                    'date': movement_date,
                     'direction': 'in',
                     'amount': self.down_payment,
                     'description': f'Seña venta {self.sale_number}',
