@@ -411,3 +411,39 @@ class VehicleCost(models.Model):
                 'exchange_rate': 'Es obligatorio cargar el tipo de cambio cuando '
                                  'el monto está en USD.'
             })
+
+
+class VehicleImage(models.Model):
+    """Foto adicional de un vehículo — múltiples por vehículo.
+
+    El campo `image` de Vehicle sigue existiendo como "foto principal"
+    (legacy). La galería en la UI usa VehicleImage cuando hay al menos
+    una, y cae al `Vehicle.image` singular como fallback.
+    """
+    vehicle = models.ForeignKey(
+        Vehicle,
+        on_delete=models.CASCADE,
+        related_name='images',
+        verbose_name=_('Vehículo'),
+    )
+    image = models.ImageField(
+        upload_to='vehicles/',
+        verbose_name=_('Foto'),
+    )
+    order = models.IntegerField(
+        default=0,
+        verbose_name=_('Orden'),
+    )
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('Subida'),
+    )
+
+    class Meta:
+        verbose_name = _('Foto de vehículo')
+        verbose_name_plural = _('Fotos de vehículos')
+        ordering = ['vehicle_id', 'order', 'id']
+        indexes = [models.Index(fields=['vehicle'])]
+
+    def __str__(self):
+        return f'{self.vehicle_id} - foto {self.order}'

@@ -69,11 +69,18 @@ class CustomUser(AbstractUser):
 
 class Enterprise(models.Model):
     """Empresa cliente que adquiere el software (Multiempresa)"""
-    
+
     name = models.CharField(
         max_length=255,
         unique=True,
         verbose_name=_('Nombre de Empresa')
+    )
+    slug = models.SlugField(
+        max_length=100,
+        unique=True,
+        null=True, blank=True,
+        verbose_name=_('Slug URL público'),
+        help_text=_('Identificador URL-friendly usado en /catalogo/{slug}/'),
     )
     ruc = models.CharField(
         max_length=50,

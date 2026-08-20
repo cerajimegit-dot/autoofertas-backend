@@ -8,7 +8,7 @@ from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 
 from core.models import Brand, VehicleModel, ExchangeRate, Vehicle
-from core.models.inventory import VehicleCost
+from core.models.inventory import VehicleCost, VehicleImage
 from core.serializers import (
     BrandSerializer, VehicleModelSerializer, ExchangeRateSerializer,
     VehicleListSerializer, VehicleDetailSerializer, VehicleCostSerializer
@@ -182,6 +182,40 @@ class VehicleViewSet(viewsets.ModelViewSet):
         ).first()
         serializer.save(enterprise=user.enterprise, branch=branch)
     
+    @action(detail=True, methods=['get', 'post'])
+    def images(self, request, pk=None):
+        """GET: lista fotos del vehiculo. POST: sube una nueva (multipart)."""
+        vehicle = self.get_object()
+        if request.method == 'POST':
+            file = request.FILES.get('image')
+            if not file:
+                return Response({'error': 'Falta el campo image'}, status=400)
+            order = int(request.data.get('order', 0))
+            img = VehicleImage.objects.create(vehicle=vehicle, image=file, order=order)
+            return Response({
+                'id': img.id,
+                'url': request.build_absolute_uri(img.image.url),
+                'order': img.order,
+            }, status=201)
+        # GET
+        imgs = VehicleImage.objects.filter(vehicle=vehicle).order_by('order', 'id')
+        data = [{
+            'id': i.id,
+            'url': request.build_absolute_uri(i.image.url) if i.image else None,
+            'order': i.order,
+        } for i in imgs]
+        return Response(data)
+
+    @action(detail=True, methods=['delete'], url_path='images/(?P<img_id>[^/.]+)')
+    def delete_image(self, request, pk=None, img_id=None):
+        vehicle = self.get_object()
+        img = VehicleImage.objects.filter(vehicle=vehicle, id=img_id).first()
+        if not img:
+            return Response({'error': 'Foto no encontrada'}, status=404)
+        img.image.delete(save=False)
+        img.delete()
+        return Response(status=204)
+
     @action(detail=True, methods=['get'])
     def costs(self, request, pk=None):
         """Lista los gastos extra (VehicleCost) imputados a este vehiculo.

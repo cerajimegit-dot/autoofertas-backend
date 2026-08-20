@@ -7,15 +7,19 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+from core.views.public import public_catalog
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    
+
     # UI Routes
     path('', include('ui.urls')),
-    
+
     # API Routes
     path('api/', include('core.urls')),
+
+    # Catálogo público (sin auth)
+    path('api/public/catalogo/<slug:slug>/', public_catalog, name='public-catalog'),
     
     # API Docs
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
