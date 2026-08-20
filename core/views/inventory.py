@@ -182,6 +182,25 @@ class VehicleViewSet(viewsets.ModelViewSet):
         ).first()
         serializer.save(enterprise=user.enterprise, branch=branch)
     
+    @action(detail=True, methods=['get'])
+    def costs(self, request, pk=None):
+        """Lista los gastos extra (VehicleCost) imputados a este vehiculo.
+
+        Devuelve concept, amount, currency, exchange_rate. La UI usa esto en
+        la ficha /vehicles/:id para el panel Balance de Unidad.
+        """
+        from core.models import VehicleCost
+        vehicle = self.get_object()
+        costs = VehicleCost.objects.filter(vehicle=vehicle).order_by('-id')
+        data = [{
+            'id': c.id,
+            'concept': c.concept,
+            'amount': str(c.amount),
+            'currency': c.currency,
+            'exchange_rate': str(c.exchange_rate) if c.exchange_rate else None,
+        } for c in costs]
+        return Response(data)
+
     @action(detail=False, methods=['get'])
     def stuck(self, request):
         """Lista vehículos available que llevan ≥ `days` días en stock.
