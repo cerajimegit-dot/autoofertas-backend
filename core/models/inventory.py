@@ -51,6 +51,39 @@ class Brand(models.Model):
         return self.name
 
 
+class Supplier(models.Model):
+    """Proveedor / persona que hace trabajos sobre los vehículos.
+
+    Ej: mecánico, chapista, pintor, gestor de trámites, tapicero, gomería.
+    Se enlaza desde VehicleCost.supplier para saber quién realizó cada gasto.
+    """
+
+    enterprise = models.ForeignKey(
+        'core.Enterprise',
+        on_delete=models.CASCADE,
+        related_name='suppliers',
+        verbose_name=_('Empresa')
+    )
+    name = models.CharField(max_length=100, verbose_name=_('Nombre'))
+    phone = models.CharField(max_length=20, blank=True, verbose_name=_('Teléfono'))
+    notes = models.TextField(blank=True, verbose_name=_('Notas'))
+    is_active = models.BooleanField(default=True, verbose_name=_('Activo'))
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _('Proveedor')
+        verbose_name_plural = _('Proveedores')
+        unique_together = ('enterprise', 'name')
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['enterprise', 'is_active']),
+        ]
+
+    def __str__(self):
+        return self.name
+
+
 class VehicleModel(models.Model):
     """Modelo de vehículo (ej. Corolla, Civic, F-150)"""
     
@@ -375,6 +408,19 @@ class VehicleCost(models.Model):
         verbose_name=_('Tipo de cambio'),
         help_text=_('Obligatorio si moneda=USD. Se usa para calcular el '
                     'equivalente en PYG en el análisis de margen.'),
+    )
+    date = models.DateField(
+        null=True, blank=True,
+        verbose_name=_('Fecha del gasto'),
+        help_text=_('Cuándo se realizó el trabajo o se pagó el gasto.'),
+    )
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='costs',
+        verbose_name=_('Proveedor'),
+        help_text=_('Quién realizó el trabajo (mecánico, chapista, etc.).'),
     )
     notes = models.TextField(blank=True, verbose_name=_('Notas'))
     order = models.IntegerField(default=0, verbose_name=_('Orden'))

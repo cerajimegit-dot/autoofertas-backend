@@ -3,7 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from core.models import Enterprise, Vehicle, Sale, Quotum, Customer, Branch, PaymentForm, ViewPermission, CustomUser
+from core.models import Enterprise, Vehicle, Sale, Quotum, Customer, Branch, PaymentForm, ViewPermission, CustomUser, Supplier
+from core.models.inventory import VehicleCost
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from django.contrib import messages
@@ -96,6 +97,73 @@ def vehicles(request):
     }
     
     return render(request, 'ui/vehicles.html', context)
+
+
+@login_required
+@view_permission_required('vehicles')
+def vehicle_detail(request, vehicle_id):
+    """Detalle de vehículo con gastos adicionales y balance."""
+    enterprise = request.user.enterprise or Enterprise.objects.first()
+
+    try:
+        vehicle = Vehicle.objects.select_related(
+            'brand', 'model', 'branch', 'exchange_rate'
+        ).get(id=vehicle_id, enterprise=enterprise)
+    except Vehicle.DoesNotExist:
+        messages.error(request, 'Vehículo no encontrado.')
+        return redirect('ui:vehicles')
+
+    extra_costs = list(
+        VehicleCost.objects.filter(vehicle=vehicle)
+        .select_related('supplier')
+        .order_by('-date', '-id')
+    )
+
+    # Balance: sumar todo en PYG
+    D = Decimal
+    fob = vehicle.fob or D(0)
+    container = vehicle.container or D(0)
+    dispatch = vehicle.dispatch or D(0)
+    cam_vol = vehicle.cam_vol or D(0)
+    # Si el vehículo está en USD, convertir el costo base con su exchange_rate
+    if vehicle.currency == 'USD' and vehicle.exchange_rate:
+        tc = vehicle.exchange_rate.rate or D(0)
+        costo_base_pyg = (fob + container + dispatch + cam_vol) * tc
+        precio_venta_pyg = (vehicle.price or D(0)) * tc
+    else:
+        costo_base_pyg = fob + container + dispatch + cam_vol
+        precio_venta_pyg = vehicle.price or D(0)
+
+    # Extras en PYG
+    costo_extras_pyg = D(0)
+    for c in extra_costs:
+        amt = c.amount or D(0)
+        if c.currency == 'USD':
+            tc = c.exchange_rate or D(0)
+            costo_extras_pyg += amt * tc
+        else:
+            costo_extras_pyg += amt
+
+    costo_total_pyg = costo_base_pyg + costo_extras_pyg
+    ganancia_pyg = precio_venta_pyg - costo_total_pyg
+
+    # Proveedores activos (para el autocomplete inicial + fallback si JS falla)
+    suppliers = Supplier.objects.filter(
+        enterprise=enterprise, is_active=True
+    ).order_by('name')
+
+    context = {
+        'vehicle': vehicle,
+        'extra_costs': extra_costs,
+        'costo_base_pyg': costo_base_pyg,
+        'costo_extras_pyg': costo_extras_pyg,
+        'costo_total_pyg': costo_total_pyg,
+        'precio_venta_pyg': precio_venta_pyg,
+        'ganancia_pyg': ganancia_pyg,
+        'suppliers': suppliers,
+        'enterprise': enterprise,
+    }
+    return render(request, 'ui/vehicle_detail.html', context)
 
 
 @login_required

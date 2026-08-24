@@ -5,7 +5,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from core.views import (
     CustomUserViewSet, EnterpriseViewSet, BranchViewSet, AuditLogViewSet,
     BrandViewSet, VehicleModelViewSet, ExchangeRateViewSet, VehicleViewSet,
-    VehicleCostViewSet,
+    VehicleCostViewSet, SupplierViewSet,
     CustomerViewSet, PaymentFormViewSet, SaleViewSet, QuotumViewSet,
     DashboardViewSet, CashMovementViewSet,
 )
@@ -28,6 +28,7 @@ router.register(r'vehicle-models', VehicleModelViewSet, basename='vehiclemodel')
 router.register(r'exchange-rates', ExchangeRateViewSet, basename='exchangerate')
 router.register(r'vehicles', VehicleViewSet, basename='vehicle')
 router.register(r'vehicle-costs', VehicleCostViewSet, basename='vehiclecost')
+router.register(r'suppliers', SupplierViewSet, basename='supplier')
 
 # Ventas
 router.register(r'customers', CustomerViewSet, basename='customer')

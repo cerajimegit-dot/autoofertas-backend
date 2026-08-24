@@ -1,6 +1,6 @@
 # Importar todos los modelos
 from .base import CustomUser, Enterprise, Branch, AuditLog, ViewPermission
-from .inventory import Brand, VehicleModel, ExchangeRate, Vehicle, VehicleCost, VehicleImage
+from .inventory import Brand, Supplier, VehicleModel, ExchangeRate, Vehicle, VehicleCost, VehicleImage
 from .sales import Customer, PaymentForm, Sale, Quotum
 from .cash import CashMovement
 
@@ -11,6 +11,7 @@ __all__ = [
     'AuditLog',
     'ViewPermission',
     'Brand',
+    'Supplier',
     'VehicleModel',
     'ExchangeRate',
     'Vehicle',

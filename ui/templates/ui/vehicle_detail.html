@@ -1,0 +1,367 @@
+{% extends 'ui/base.html' %}
+{% load humanize %}
+
+{% block title %}{{ vehicle.brand.name }} {{ vehicle.model.name }} {{ vehicle.year }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mb-4">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h1 class="mb-1">
+                <i class="fas fa-car"></i> {{ vehicle.brand.name }} {{ vehicle.model.name }} {{ vehicle.year }}
+                {% if vehicle.state == 'available' %}
+                    <span class="badge bg-success fs-6 align-middle">Disponible</span>
+                {% elif vehicle.state == 'sold' %}
+                    <span class="badge bg-secondary fs-6 align-middle">Vendido</span>
+                {% elif vehicle.state == 'reserved' %}
+                    <span class="badge bg-warning fs-6 align-middle">Reservado</span>
+                {% else %}
+                    <span class="badge bg-info fs-6 align-middle">{{ vehicle.state }}</span>
+                {% endif %}
+            </h1>
+            <div class="text-muted">
+                <code>{{ vehicle.vin }}</code> · {{ vehicle.color|default:"—" }} · {{ vehicle.branch.name }}
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'ui:vehicles' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <!-- Balance de unidad -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-scale-balanced"></i> Balance de unidad
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm mb-0">
+                        <tr>
+                            <td>FOB</td>
+                            <td class="text-end">Gs. {{ vehicle.fob|floatformat:0|intcomma }}</td>
+                        </tr>
+                        <tr>
+                            <td>Contenedor</td>
+                            <td class="text-end">Gs. {{ vehicle.container|floatformat:0|intcomma }}</td>
+                        </tr>
+                        <tr>
+                            <td>Despacho</td>
+                            <td class="text-end">Gs. {{ vehicle.dispatch|floatformat:0|intcomma }}</td>
+                        </tr>
+                        <tr>
+                            <td>Cam/Vol</td>
+                            <td class="text-end">Gs. {{ vehicle.cam_vol|floatformat:0|intcomma }}</td>
+                        </tr>
+                        <tr class="border-top">
+                            <td><strong>Costo base</strong></td>
+                            <td class="text-end"><strong>Gs. {{ costo_base_pyg|floatformat:0|intcomma }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>+ Gastos extras</td>
+                            <td class="text-end" id="costo-extras-cell">Gs. {{ costo_extras_pyg|floatformat:0|intcomma }}</td>
+                        </tr>
+                        <tr class="table-warning">
+                            <td><strong>Costo total</strong></td>
+                            <td class="text-end"><strong id="costo-total-cell">Gs. {{ costo_total_pyg|floatformat:0|intcomma }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Precio venta</td>
+                            <td class="text-end">Gs. {{ precio_venta_pyg|floatformat:0|intcomma }}</td>
+                        </tr>
+                        <tr class="{% if ganancia_pyg > 0 %}table-success{% else %}table-danger{% endif %}">
+                            <td><strong>Ganancia estimada</strong></td>
+                            <td class="text-end"><strong id="ganancia-cell">Gs. {{ ganancia_pyg|floatformat:0|intcomma }}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gastos adicionales -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-tools"></i> Gastos adicionales ({{ extra_costs|length }})</span>
+                    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#modalGasto">
+                        <i class="fas fa-plus"></i> Agregar gasto
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0" id="tabla-gastos">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Concepto</th>
+                                <th>Proveedor</th>
+                                <th class="text-end">Monto</th>
+                                <th>Notas</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in extra_costs %}
+                            <tr data-cost-id="{{ c.id }}">
+                                <td>{{ c.date|date:"d/m/Y"|default:"—" }}</td>
+                                <td>{{ c.concept }}</td>
+                                <td>{{ c.supplier.name|default:"—" }}</td>
+                                <td class="text-end">
+                                    {% if c.currency == 'USD' %}
+                                        USD {{ c.amount|floatformat:2|intcomma }}
+                                        {% if c.exchange_rate %}
+                                        <br><small class="text-muted">TC {{ c.exchange_rate|floatformat:0|intcomma }}</small>
+                                        {% endif %}
+                                    {% else %}
+                                        Gs. {{ c.amount|floatformat:0|intcomma }}
+                                    {% endif %}
+                                </td>
+                                <td><small class="text-muted">{{ c.notes|default:"" }}</small></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="borrarGasto({{ c.id }})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr id="tabla-vacia">
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    Aún no cargaste gastos adicionales para este vehículo.
+                                    <br>
+                                    <small>Ej: cambio de aceite, chapa y pintura, tapizado, gestoría.</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Agregar gasto -->
+<div class="modal fade" id="modalGasto" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formGasto" onsubmit="return guardarGasto(event)">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus"></i> Nuevo gasto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Fecha *</label>
+                        <input type="date" class="form-control" id="g-date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Concepto (trabajo realizado) *</label>
+                        <input type="text" class="form-control" id="g-concept" placeholder="Ej: Cambio de aceite, chapa y pintura, tapizado..." required maxlength="100">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Proveedor (quién lo hizo)</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="g-supplier-input" list="lista-suppliers" placeholder="Escribí el nombre..." autocomplete="off">
+                            <datalist id="lista-suppliers">
+                                {% for s in suppliers %}
+                                <option value="{{ s.name }}" data-id="{{ s.id }}"></option>
+                                {% endfor %}
+                            </datalist>
+                            <button type="button" class="btn btn-outline-secondary" onclick="crearProveedor()" title="Crear nuevo proveedor">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Si no existe, tipealo y click <i class="fas fa-plus"></i> para agregarlo.</small>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-8">
+                            <label class="form-label">Monto *</label>
+                            <input type="number" step="0.01" min="0" class="form-control" id="g-amount" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Moneda</label>
+                            <select class="form-select" id="g-currency" onchange="toggleTC()">
+                                <option value="PYG" selected>PYG</option>
+                                <option value="USD">USD</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3" id="tc-wrapper" style="display:none">
+                        <label class="form-label">Tipo de cambio *</label>
+                        <input type="number" step="0.01" min="0" class="form-control" id="g-tc" placeholder="Ej: 7500">
+                        <small class="text-muted">Necesario si la moneda es USD.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notas</label>
+                        <textarea class="form-control" id="g-notes" rows="2" placeholder="Opcional"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar gasto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // CSRF helper
+    function getCsrf() {
+        const m = document.cookie.match(/csrftoken=([^;]+)/);
+        if (m) return m[1];
+        const inp = document.querySelector('input[name=csrfmiddlewaretoken]');
+        return inp ? inp.value : '';
+    }
+
+    const VEHICLE_ID = {{ vehicle.id }};
+    // Snapshot inicial para recalcular el balance sin recargar
+    let costoBasePyg = {{ costo_base_pyg|stringformat:"d" }};
+    let precioVentaPyg = {{ precio_venta_pyg|stringformat:"d" }};
+    let costoExtrasPyg = {{ costo_extras_pyg|stringformat:"d" }};
+
+    // Fecha default hoy
+    document.getElementById('g-date').valueAsDate = new Date();
+
+    window.toggleTC = function() {
+        const usd = document.getElementById('g-currency').value === 'USD';
+        document.getElementById('tc-wrapper').style.display = usd ? '' : 'none';
+        document.getElementById('g-tc').required = usd;
+    };
+
+    function fmtMiles(n) {
+        return new Intl.NumberFormat('es-PY').format(Math.round(n));
+    }
+
+    function recalcularBalance() {
+        const costoTotal = costoBasePyg + costoExtrasPyg;
+        const ganancia = precioVentaPyg - costoTotal;
+        document.getElementById('costo-extras-cell').textContent = 'Gs. ' + fmtMiles(costoExtrasPyg);
+        document.getElementById('costo-total-cell').textContent = 'Gs. ' + fmtMiles(costoTotal);
+        const ganCell = document.getElementById('ganancia-cell');
+        ganCell.textContent = 'Gs. ' + fmtMiles(ganancia);
+        const gananciaRow = ganCell.closest('tr');
+        gananciaRow.classList.remove('table-success', 'table-danger');
+        gananciaRow.classList.add(ganancia > 0 ? 'table-success' : 'table-danger');
+    }
+
+    function pygFromCost(amount, currency, tc) {
+        return currency === 'USD' ? amount * (tc || 0) : amount;
+    }
+
+    // Resolver el supplier: si el input coincide con la datalist devuelve su id, sino null
+    function resolverSupplierId() {
+        const val = document.getElementById('g-supplier-input').value.trim();
+        if (!val) return null;
+        const opts = document.querySelectorAll('#lista-suppliers option');
+        for (const o of opts) {
+            if (o.value.toLowerCase() === val.toLowerCase()) {
+                return parseInt(o.dataset.id, 10);
+            }
+        }
+        return null;
+    }
+
+    window.crearProveedor = async function() {
+        const name = document.getElementById('g-supplier-input').value.trim();
+        if (!name) { alert('Escribí el nombre del proveedor primero'); return; }
+        // Chequear si ya existe en la datalist
+        const existingId = resolverSupplierId();
+        if (existingId) { alert('El proveedor "' + name + '" ya existe'); return; }
+        try {
+            const r = await fetch('/api/suppliers/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrf()},
+                body: JSON.stringify({name: name, is_active: true}),
+            });
+            if (!r.ok) {
+                const err = await r.json().catch(() => ({}));
+                alert('Error creando proveedor: ' + JSON.stringify(err));
+                return;
+            }
+            const created = await r.json();
+            // Agregar al datalist
+            const opt = document.createElement('option');
+            opt.value = created.name;
+            opt.dataset.id = created.id;
+            document.getElementById('lista-suppliers').appendChild(opt);
+            alert('Proveedor "' + created.name + '" creado. Ya podés guardar el gasto.');
+        } catch (e) {
+            alert('Error de red: ' + e.message);
+        }
+    };
+
+    window.guardarGasto = async function(ev) {
+        ev.preventDefault();
+        const currency = document.getElementById('g-currency').value;
+        const supplierId = resolverSupplierId();
+
+        const supplierInput = document.getElementById('g-supplier-input').value.trim();
+        if (supplierInput && !supplierId) {
+            if (!confirm('El proveedor "' + supplierInput + '" no existe. Guardar el gasto SIN proveedor? (usá el botón + para crearlo primero)')) {
+                return false;
+            }
+        }
+
+        const payload = {
+            vehicle: VEHICLE_ID,
+            date: document.getElementById('g-date').value,
+            concept: document.getElementById('g-concept').value.trim(),
+            supplier: supplierId,
+            amount: document.getElementById('g-amount').value,
+            currency: currency,
+            exchange_rate: currency === 'USD' ? document.getElementById('g-tc').value : null,
+            notes: document.getElementById('g-notes').value.trim(),
+        };
+        try {
+            const r = await fetch('/api/vehicle-costs/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrf()},
+                body: JSON.stringify(payload),
+            });
+            if (!r.ok) {
+                const err = await r.json().catch(() => ({}));
+                alert('Error al guardar: ' + JSON.stringify(err));
+                return false;
+            }
+            const saved = await r.json();
+            // Refresh la página — más simple y garantiza que el balance server-side sea consistente
+            window.location.reload();
+        } catch (e) {
+            alert('Error de red: ' + e.message);
+        }
+        return false;
+    };
+
+    window.borrarGasto = async function(id) {
+        if (!confirm('¿Eliminar este gasto?')) return;
+        try {
+            const r = await fetch('/api/vehicle-costs/' + id + '/', {
+                method: 'DELETE',
+                headers: {'X-CSRFToken': getCsrf()},
+            });
+            if (!r.ok && r.status !== 204) {
+                alert('Error al borrar (status ' + r.status + ')');
+                return;
+            }
+            window.location.reload();
+        } catch (e) {
+            alert('Error de red: ' + e.message);
+        }
+    };
+})();
+</script>
+{% endblock %}

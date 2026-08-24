@@ -1,6 +1,23 @@
 from rest_framework import serializers
-from core.models import Brand, VehicleModel, ExchangeRate, Vehicle
+from core.models import Brand, Supplier, VehicleModel, ExchangeRate, Vehicle
 from core.models.inventory import VehicleCost
+
+
+class SupplierSerializer(serializers.ModelSerializer):
+    """Serializador para Supplier (proveedor de servicios)."""
+
+    costs_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Supplier
+        fields = (
+            'id', 'name', 'phone', 'notes', 'is_active',
+            'costs_count', 'created_at', 'updated_at',
+        )
+        read_only_fields = ('id', 'costs_count', 'created_at', 'updated_at')
+
+    def get_costs_count(self, obj):
+        return obj.costs.count()
 
 
 class BrandSerializer(serializers.ModelSerializer):
@@ -55,15 +72,18 @@ class ExchangeRateSerializer(serializers.ModelSerializer):
 class VehicleCostSerializer(serializers.ModelSerializer):
     """Serializador para costos extras de vehículos"""
 
+    supplier_name = serializers.CharField(source='supplier.name', read_only=True, default=None)
+
     class Meta:
         model = VehicleCost
         fields = (
             'id', 'enterprise', 'vehicle', 'concept', 'amount', 'currency',
             'exchange_rate',
+            'date', 'supplier', 'supplier_name',
             'notes', 'order', 'created_at', 'updated_at',
         )
         # enterprise lo asigna el ViewSet
-        read_only_fields = ('id', 'enterprise', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'enterprise', 'supplier_name', 'created_at', 'updated_at')
 
     def validate(self, attrs):
         """USD exige exchange_rate. Replicamos la validación del modelo

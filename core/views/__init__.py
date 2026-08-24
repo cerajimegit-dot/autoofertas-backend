@@ -5,7 +5,7 @@ from .base import (
 )
 from .inventory import (
     BrandViewSet, VehicleModelViewSet, ExchangeRateViewSet, VehicleViewSet,
-    VehicleCostViewSet,
+    VehicleCostViewSet, SupplierViewSet,
 )
 from .sales import (
     CustomerViewSet, PaymentFormViewSet,
@@ -24,6 +24,7 @@ __all__ = [
     'ExchangeRateViewSet',
     'VehicleViewSet',
     'VehicleCostViewSet',
+    'SupplierViewSet',
     'CustomerViewSet',
     'PaymentFormViewSet',
     'SaleViewSet',

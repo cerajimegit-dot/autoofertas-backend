@@ -32,7 +32,7 @@
                     </thead>
                     <tbody>
                         {% for vehicle in vehicles %}
-                        <tr>
+                        <tr onclick="window.location='{% url 'ui:vehicle_detail' vehicle.id %}'" style="cursor:pointer">
                             <td>#{{ vehicle.id }}</td>
                             <td>{{ vehicle.brand.name }}</td>
                             <td>{{ vehicle.model.name }}</td>

@@ -5,7 +5,8 @@ from .base import (
 )
 from .inventory import (
     BrandSerializer, VehicleModelSerializer, ExchangeRateSerializer,
-    VehicleListSerializer, VehicleDetailSerializer, VehicleCostSerializer
+    VehicleListSerializer, VehicleDetailSerializer, VehicleCostSerializer,
+    SupplierSerializer,
 )
 from .sales import (
     CustomerSerializer, PaymentFormSerializer,
@@ -26,6 +27,7 @@ __all__ = [
     'VehicleListSerializer',
     'VehicleDetailSerializer',
     'VehicleCostSerializer',
+    'SupplierSerializer',
     'CustomerSerializer',
     'PaymentFormSerializer',
     'SaleListSerializer',

@@ -7,11 +7,12 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 
-from core.models import Brand, VehicleModel, ExchangeRate, Vehicle
+from core.models import Brand, VehicleModel, ExchangeRate, Vehicle, Supplier
 from core.models.inventory import VehicleCost, VehicleImage
 from core.serializers import (
     BrandSerializer, VehicleModelSerializer, ExchangeRateSerializer,
-    VehicleListSerializer, VehicleDetailSerializer, VehicleCostSerializer
+    VehicleListSerializer, VehicleDetailSerializer, VehicleCostSerializer,
+    SupplierSerializer,
 )
 from core.permissions import IsAuthenticated, IsEnterpriseOwnerOrAdmin
 
@@ -225,13 +226,17 @@ class VehicleViewSet(viewsets.ModelViewSet):
         """
         from core.models import VehicleCost
         vehicle = self.get_object()
-        costs = VehicleCost.objects.filter(vehicle=vehicle).order_by('-id')
+        costs = VehicleCost.objects.filter(vehicle=vehicle).select_related('supplier').order_by('-date', '-id')
         data = [{
             'id': c.id,
+            'date': c.date.isoformat() if c.date else None,
             'concept': c.concept,
+            'supplier_id': c.supplier_id,
+            'supplier_name': c.supplier.name if c.supplier else None,
             'amount': str(c.amount),
             'currency': c.currency,
             'exchange_rate': str(c.exchange_rate) if c.exchange_rate else None,
+            'notes': c.notes,
         } for c in costs]
         return Response(data)
 
@@ -519,12 +524,37 @@ class VehicleCostViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not (user and user.enterprise):
             return VehicleCost.objects.none()
-        qs = VehicleCost.objects.filter(enterprise=user.enterprise)
+        qs = VehicleCost.objects.filter(enterprise=user.enterprise).select_related('supplier')
         # Filtrar por vehículo si se pide ?vehicle=ID
         vehicle_id = self.request.query_params.get('vehicle')
         if vehicle_id:
             qs = qs.filter(vehicle_id=vehicle_id)
         return qs.order_by('vehicle_id', 'order', 'id')
+
+    def perform_create(self, serializer):
+        serializer.save(enterprise=self.request.user.enterprise)
+
+
+class SupplierViewSet(viewsets.ModelViewSet):
+    """ViewSet para proveedores (mecánicos, chapistas, etc.).
+
+    Soporta ?search=texto para autocomplete en la UI (busca por name icontains).
+    """
+    serializer_class = SupplierSerializer
+    permission_classes = [IsAuthenticated, IsEnterpriseOwnerOrAdmin]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not (user and user.enterprise):
+            return Supplier.objects.none()
+        qs = Supplier.objects.filter(enterprise=user.enterprise)
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            qs = qs.filter(name__icontains=search)
+        only_active = self.request.query_params.get('active')
+        if only_active in ('1', 'true'):
+            qs = qs.filter(is_active=True)
+        return qs.order_by('name')
 
     def perform_create(self, serializer):
         serializer.save(enterprise=self.request.user.enterprise)
